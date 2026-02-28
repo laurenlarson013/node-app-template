@@ -2,7 +2,7 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const app = express();
 
-// Secret Key - Synced with Lauren's GitHub variable name
+// Secret Key
 const JWT_SECRET = "backendbandits"; 
 
 // 1. Validation Token Middleware
@@ -45,7 +45,7 @@ app.get('/api/admin/users', validateToken, (req, res) => {
 
 app.listen(3000, () => console.log("Backend Server running at: http://localhost:3000"));
 
-// Generate Test Token for your Safari Console tests
+// Generate test token on Safari
 console.log("TEST_TOKEN:", jwt.sign({ name: "An" }, JWT_SECRET));
 
 /* Testing JS Console log, do not mistaken for query:
