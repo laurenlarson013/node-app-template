@@ -1,0 +1,89 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Create Listing</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <script defer src="/js/authGuard.js"></script>
+    <script defer src="/js/logout.js"></script>
+  </head>
+  <body>
+    <header>
+      <nav class="nav">
+        <a href="/dashboard">Dashboard</a>
+        <a href="/browse.html">Browse</a>
+        <a href="/listing-new.html">New Listing</a>
+        <a href="/my-listings.html">My Listings</a>
+        <a href="/messages.html">Messages</a>
+        <a href="/profile.html">Profile</a>
+        <span class="spacer"></span>
+        <button class="btn" id="logoutBtn">Logout</button>
+      </nav>
+    </header>
+
+    <main class="container">
+      <h1 class="h1">New Listing</h1>
+
+      <section class="card" style="margin-top:14px;">
+        <div class="grid">
+          <div class="col-8">
+            <label class="label">Title</label>
+            <input class="input" placeholder="Ex: Calculus textbook 8th edition" />
+          </div>
+          <div class="col-4">
+            <label class="label">Category</label>
+            <select class="select">
+              <option>Textbooks</option>
+              <option>Dorm Essentials</option>
+              <option>School Supplies</option>
+              <option>Clothing</option>
+              <option>Other</option>
+            </select>
+          </div>
+
+          <div class="col-4">
+            <label class="label">Price</label>
+            <input class="input" placeholder="$" />
+          </div>
+          <div class="col-4">
+            <label class="label">Trade?</label>
+            <select class="select">
+              <option>For Sale</option>
+              <option>Open to Trade</option>
+              <option>Trade Only</option>
+            </select>
+          </div>
+          <div class="col-4">
+            <label class="label">Condition</label>
+            <select class="select">
+              <option>New</option>
+              <option>Like New</option>
+              <option>Good</option>
+              <option>Fair</option>
+            </select>
+          </div>
+
+          <div class="col-12">
+            <label class="label">Pickup Details</label>
+            <input class="input" placeholder="Ex: MU Starbucks, weekday afternoons" />
+          </div>
+
+          <div class="col-12">
+            <label class="label">Description</label>
+            <textarea class="textarea" placeholder="Add details buyers care about..."></textarea>
+          </div>
+
+          <div class="col-12">
+            <label class="label">Photos</label>
+            <input class="input" type="file" multiple />
+          </div>
+
+          <div class="col-12" style="display:flex; gap:10px; justify-content:flex-end;">
+            <button class="btn" type="button">Save Draft</button>
+            <button class="btn" type="button">Publish Listing</button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

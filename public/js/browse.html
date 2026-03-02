@@ -1,0 +1,87 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Browse Listings</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <script defer src="/js/authGuard.js"></script>
+    <script defer src="/js/logout.js"></script>
+  </head>
+  <body>
+    <header>
+      <nav class="nav">
+        <a href="/dashboard">Dashboard</a>
+        <a href="/browse.html">Browse</a>
+        <a href="/listing-new.html">New Listing</a>
+        <a href="/my-listings.html">My Listings</a>
+        <a href="/messages.html">Messages</a>
+        <a href="/profile.html">Profile</a>
+        <span class="spacer"></span>
+        <button class="btn" id="logoutBtn">Logout</button>
+      </nav>
+    </header>
+
+    <main class="container">
+      <h1 class="h1">Browse</h1>
+      <p class="kicker">Search + filter listings within your campus community (layout stub)</p>
+
+      <section class="card" style="margin-top:14px;">
+        <div class="grid">
+          <div class="col-8">
+            <label class="label">Search</label>
+            <input class="input" placeholder="textbook, mini fridge, desk lamp..." />
+          </div>
+          <div class="col-4">
+            <label class="label">Category</label>
+            <select class="select">
+              <option>All</option>
+              <option>Textbooks</option>
+              <option>Dorm Essentials</option>
+              <option>School Supplies</option>
+              <option>Clothing</option>
+            </select>
+          </div>
+
+          <div class="col-4">
+            <label class="label">Sort</label>
+            <select class="select">
+              <option>Newest</option>
+              <option>Price: Low to High</option>
+              <option>Price: High to Low</option>
+            </select>
+          </div>
+
+          <div class="col-4">
+            <label class="label">Price Range</label>
+            <input class="input" placeholder="$0 - $50" />
+          </div>
+
+          <div class="col-4" style="display:flex; align-items:end; gap:10px;">
+            <button class="btn" style="width:100%;">Apply Filters</button>
+            <button class="btn" style="width:100%;">Clear</button>
+          </div>
+        </div>
+      </section>
+
+      <section style="margin-top:14px;">
+        <div class="listing-grid">
+          <div class="card">
+            <div class="pill">Textbook</div>
+            <h2 class="h2" style="margin-top:10px;">CIS 440 Textbook</h2>
+            <p class="kicker">$35 • pickup on campus</p>
+          </div>
+          <div class="card">
+            <div class="pill">Dorm</div>
+            <h2 class="h2" style="margin-top:10px;">Mini fan</h2>
+            <p class="kicker">$10 • great condition</p>
+          </div>
+          <div class="card">
+            <div class="pill">Supplies</div>
+            <h2 class="h2" style="margin-top:10px;">Calculator</h2>
+            <p class="kicker">$15 • available</p>
+          </div>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

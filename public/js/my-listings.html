@@ -1,0 +1,65 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>My Listings</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <script defer src="/js/authGuard.js"></script>
+    <script defer src="/js/logout.js"></script>
+  </head>
+  <body>
+    <header>
+      <nav class="nav">
+        <a href="/dashboard">Dashboard</a>
+        <a href="/browse.html">Browse</a>
+        <a href="/listing-new.html">New Listing</a>
+        <a href="/my-listings.html">My Listings</a>
+        <a href="/messages.html">Messages</a>
+        <a href="/profile.html">Profile</a>
+        <span class="spacer"></span>
+        <button class="btn" id="logoutBtn">Logout</button>
+      </nav>
+    </header>
+
+    <main class="container">
+      <h1 class="h1">My Listings</h1>
+    
+      <section class="card" style="margin-top:14px;">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Status</th>
+              <th>Price</th>
+              <th>Posted</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>CIS 440 Textbook</td>
+              <td><span class="pill">Active</span></td>
+              <td>$35</td>
+              <td>Today</td>
+              <td style="display:flex; gap:8px;">
+                <button class="btn" type="button">Edit</button>
+                <button class="btn" type="button">Mark Sold</button>
+                <button class="btn" type="button">Delete</button>
+              </td>
+            </tr>
+            <tr>
+              <td>Desk lamp</td>
+              <td><span class="pill">Sold</span></td>
+              <td>$8</td>
+              <td>Last week</td>
+              <td style="display:flex; gap:8px;">
+                <button class="btn" type="button">View</button>
+                <button class="btn" type="button">Delete</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
+  </body>
+</html>

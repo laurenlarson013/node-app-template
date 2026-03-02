@@ -1,0 +1,76 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Profile</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <script defer src="/js/authGuard.js"></script>
+    <script defer src="/js/logout.js"></script>
+  </head>
+  <body>
+    <header>
+      <nav class="nav">
+        <a href="/dashboard">Dashboard</a>
+        <a href="/browse.html">Browse</a>
+        <a href="/listing-new.html">New Listing</a>
+        <a href="/my-listings.html">My Listings</a>
+        <a href="/messages.html">Messages</a>
+        <a href="/profile.html">Profile</a>
+        <span class="spacer"></span>
+        <button class="btn" id="logoutBtn">Logout</button>
+      </nav>
+    </header>
+
+    <main class="container">
+      <h1 class="h1">My Profile</h1>
+
+      <div class="grid" style="margin-top:14px;">
+        <section class="card col-6">
+          <h2 class="h2">Profile Info</h2>
+          <div style="margin-top:12px;">
+            <label class="label">Display Name</label>
+            <input class="input" placeholder="Ex: Dina L." />
+          </div>
+          <div style="margin-top:12px;">
+            <label class="label">Email (.edu)</label>
+            <input class="input" placeholder="you@school.edu" disabled />
+          </div>
+          <div style="margin-top:12px;">
+            <label class="label">Bio</label>
+            <textarea class="textarea" placeholder="Quick intro..."></textarea>
+          </div>
+          <div style="margin-top:12px;">
+            <label class="label">Profile Photo</label>
+            <input class="input" type="file" />
+          </div>
+          <div style="margin-top:12px; display:flex; justify-content:flex-end;">
+            <button class="btn" type="button">Save Changes</button>
+          </div>
+        </section>
+
+        <section class="card col-6">
+          <h2 class="h2">Campus</h2>
+          <p class="kicker">Used for automatic marketplace filtering</p>
+
+          <div style="margin-top:12px;">
+            <label class="label">University / Campus</label>
+            <select class="select">
+              <option>Arizona State University - Tempe</option>
+              <option>Arizona State University - Downtown</option>
+              <option>Other (placeholder)</option>
+            </select>
+          </div>
+
+          <div style="margin-top:12px;">
+            <label class="label">Default pickup zone</label>
+            <input class="input" placeholder="Ex: Memorial Union" />
+          </div>
+
+          <div style="margin-top:12px; display:flex; justify-content:flex-end;">
+            <button class="btn" type="button">Update Campus</button>
+          </div>
+        </section>
+      </div>
+    </main>
+  </body>
+</html>
