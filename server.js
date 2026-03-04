@@ -174,6 +174,30 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
+// Route: Get Profile 
+app.get('/api/me', authenticateToken, async (req, res) => {
+    try {
+        const connection = await createConnection();
+
+        // Query using exact column names from your database screenshot
+        const [rows] = await connection.execute(
+            'SELECT email, full_name, bio, campus, location, profile_photo_url, is_verified FROM user WHERE email = ?',
+            [req.user.email]
+        );
+
+        await connection.end();
+
+        if (rows.length === 0) {
+            return res.status(404).json({ message: 'User not found.' });
+        }
+
+        res.status(200).json(rows[0]);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error retrieving profile data.' });
+    }
+});
+
 // Route: Get All Email Addresses
 app.get('/api/users', authenticateToken, async (req, res) => {
     try {
