@@ -91,25 +91,36 @@ async function authenticateToken(req, res, next) {
 //////////////////////////////////////
 //ROUTES TO HANDLE API REQUESTS
 //////////////////////////////////////
-// Route: Create Account
+
+// Route: Create Account (Updated for Task 2)
 app.post('/api/create-account', async (req, res) => {
-    const { email, password } = req.body;
+    let { email, password } = req.body;
 
     if (!email || !password) {
         return res.status(400).json({ message: 'Email and password are required.' });
     }
 
+    // 1. Trim and lowercase email
+    email = email.trim().toLowerCase();
+
+    // 2. Reject if email does not end with .edu
+    if (!email.endsWith('.edu')) {
+        return res.status(403).json({ 
+            message: 'Only students with a valid .edu email address can sign up.' 
+        });
+    }
+
     try {
         const connection = await createConnection();
-        const hashedPassword = await bcrypt.hash(password, 10);  // Hash password
+        const hashedPassword = await bcrypt.hash(password, 10);
 
+        // 3. Insert user with is_verified = 1
         const [result] = await connection.execute(
-            'INSERT INTO user (email, password) VALUES (?, ?)',
-            [email, hashedPassword]
+            'INSERT INTO user (email, password, is_verified) VALUES (?, ?, ?)',
+            [email, hashedPassword, 1] // Verified by default for .edu
         );
 
-        await connection.end();  // Close connection
-
+        await connection.end();
         res.status(201).json({ message: 'Account created successfully!' });
     } catch (error) {
         if (error.code === 'ER_DUP_ENTRY') {
