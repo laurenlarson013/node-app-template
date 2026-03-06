@@ -198,6 +198,34 @@ app.get('/api/me', authenticateToken, async (req, res) => {
     }
 });
 
+// Task 4 — Backend: Update Profile
+app.put('/api/me', authenticateToken, async (req, res) => {
+    const { full_name, bio, campus, location, profile_photo_url } = req.body;
+
+    try {
+        const connection = await createConnection();
+
+        // Update the user table using the email from the JWT (req.user.email)
+        const [result] = await connection.execute(
+            `UPDATE user 
+             SET full_name = ?, bio = ?, campus = ?, location = ?, profile_photo_url = ? 
+             WHERE email = ?`,
+            [full_name, bio, campus, location, profile_photo_url, req.user.email]
+        );
+
+        await connection.end();
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: 'User not found.' });
+        }
+
+        res.status(200).json({ message: 'Profile Updated!' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error Encountered.' });
+    }
+});
+
 // Route: Get All Email Addresses
 app.get('/api/users', authenticateToken, async (req, res) => {
     try {
