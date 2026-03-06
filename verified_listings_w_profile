@@ -1,9 +1,0 @@
-SELECT 
-    l.*,
-    u.name,
-    u.profile_photo,
-    u.university
-FROM listings l
-JOIN user u 
-    ON l.user_email = u.email
-WHERE u.is_verified = TRUE;
