@@ -18,8 +18,13 @@ app.use(express.json());
 app.use(express.static('public'));
 
 //////////////////////////////////////
-//ROUTES TO SERVE HTML FILES
+// ROUTES TO SERVE HTML FILES
 //////////////////////////////////////
+
+// Default route to serve logon.html
+app.get('/', (req, res) => {
+    res.sendFile(__dirname + '/public/logon.html');
+});
 // Route to serve browse.html
 app.get('/browse', (req, res) => {
     res.sendFile(__dirname + '/public/js/browse.html');
@@ -260,39 +265,6 @@ app.get('/api/users', authenticateToken, async (req, res) => {
 //////////////////////////////////////
 //END ROUTES TO HANDLE API REQUESTS
 //////////////////////////////////////
-
-// Create Listing API
-app.post('/api/listings', authenticateToken, async (req, res) => {
-    // Get the data from the request body
-    const { title, description, price, university, category } = req.body;
-
-    // Ensure no empty fields are left 
-    if (!title || !price || !university) {
-        return res.status(400).json({ message: 'Title, Price, and University are required.' });
-    }
-
-    try {
-        const connection = await createConnection();
-
-        // Insert listing into the database, using req.user.email from JWT to link the user’s email to the posting. 
-        const [result] = await connection.execute(
-            'Insert INTO listings (title, description, price, university, category, user_email) VALUES (?, ?, ?, ?, ?, ?)',
-            [title, description, price, university, category, req.user.email]
-        );
-
-        await connection.end();
-
-        // Return success response back to the frontend
-        res.status(201).json({ 
-            message: 'Listing successfully created!',
-            listingId: result.insertId 
-        });
-
-    } catch (error) {
-        console.error("Database Error:", error);
-        res.status(500).json({ message: 'Cannot create listing. Please try again.' });
-    }
-});
 
 // Start the server
 app.listen(port, () => {
