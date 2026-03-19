@@ -3,19 +3,20 @@
   <head>
     <meta charset="utf-8" />
     <title>Create Listing</title>
-    <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/css/styles.css" />
     <script defer src="/js/authGuard.js"></script>
     <script defer src="/js/logout.js"></script>
+    <script defer src="/js/listing-new.js"></script>
   </head>
   <body>
     <header>
       <nav class="nav">
         <a href="/dashboard">Dashboard</a>
-        <a href="/browse.html">Browse</a>
-        <a href="/listing-new.html">New Listing</a>
-        <a href="/my-listings.html">My Listings</a>
-        <a href="/messages.html">Messages</a>
-        <a href="/profile.html">Profile</a>
+        <a href="/browse">Browse</a>
+        <a href="/listing-new">New Listing</a>
+        <a href="/my-listings">My Listings</a>
+        <a href="/messages">Messages</a>
+        <a href="/profile">Profile</a>
         <span class="spacer"></span>
         <button class="btn" id="logoutBtn">Logout</button>
       </nav>
@@ -25,64 +26,78 @@
       <h1 class="h1">New Listing</h1>
 
       <section class="card" style="margin-top:14px;">
-        <div class="grid">
-          <div class="col-8">
-            <label class="label">Title</label>
-            <input class="input" placeholder="Ex: Calculus textbook 8th edition" />
-          </div>
-          <div class="col-4">
-            <label class="label">Category</label>
-            <select class="select">
-              <option>Textbooks</option>
-              <option>Dorm Essentials</option>
-              <option>School Supplies</option>
-              <option>Clothing</option>
-              <option>Other</option>
-            </select>
-          </div>
+        <form id="create-listing-form">
+          <div class="grid">
+            <div class="col-8">
+              <label class="label" for="title">Title</label>
+              <input class="input" id="title" type="text" placeholder="Ex: Calculus textbook 8th edition" required />
+            </div>
 
-          <div class="col-4">
-            <label class="label">Price</label>
-            <input class="input" placeholder="$" />
-          </div>
-          <div class="col-4">
-            <label class="label">Trade?</label>
-            <select class="select">
-              <option>For Sale</option>
-              <option>Open to Trade</option>
-              <option>Trade Only</option>
-            </select>
-          </div>
-          <div class="col-4">
-            <label class="label">Condition</label>
-            <select class="select">
-              <option>New</option>
-              <option>Like New</option>
-              <option>Good</option>
-              <option>Fair</option>
-            </select>
-          </div>
+            <div class="col-4">
+              <label class="label" for="category">Category</label>
+              <select class="select" id="category" required>
+                <option value="">Select category</option>
+                <option value="Textbooks">Textbooks</option>
+                <option value="Dorm Essentials">Dorm Essentials</option>
+                <option value="School Supplies">School Supplies</option>
+                <option value="Clothing">Clothing</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
 
-          <div class="col-12">
-            <label class="label">Pickup Details</label>
-            <input class="input" placeholder="Ex: MU Starbucks, weekday afternoons" />
-          </div>
+            <div class="col-4">
+              <label class="label" for="price">Price</label>
+              <input class="input" id="price" type="number" min="0" step="0.01" placeholder="$" required />
+            </div>
 
-          <div class="col-12">
-            <label class="label">Description</label>
-            <textarea class="textarea" placeholder="Add details buyers care about..."></textarea>
-          </div>
+            <div class="col-4">
+              <label class="label" for="trade_option">Trade?</label>
+              <select class="select" id="trade_option">
+                <option value="For Sale">For Sale</option>
+                <option value="Open to Trade">Open to Trade</option>
+                <option value="Trade Only">Trade Only</option>
+              </select>
+            </div>
+            
+            <div class="col-4">
+              <label class="label" for="item_condition">Condition</label>
+              <select class="select" id="item_condition">
+                <option value="New">New</option>
+                <option value="Like New">Like New</option>
+                <option value="Good">Good</option>
+                <option value="Fair">Fair</option>
+              </select>
+            </div>
+            
+            <div class="col-12">
+              <label class="label" for="pickup_details">Pickup Details</label>
+              <input class="input" id="pickup_details" type="text" placeholder="Ex: MU Starbucks, weekday afternoons" />
+            </div>
 
-          <div class="col-12">
-            <label class="label">Photos</label>
-            <input class="input" type="file" multiple />
-          </div>
+            <div class="col-12">
+              <label class="label" for="university">University</label>
+              <input class="input" id="university" type="text" placeholder="Ex: Arizona State University" required />
+            </div>
 
-          <div class="col-12" style="display:flex; gap:10px; justify-content:flex-end;">
-            <button class="btn" type="button">Save Draft</button>
-            <button class="btn" type="button">Publish Listing</button>
+            <div class="col-12">
+              <label class="label" for="description">Description</label>
+              <textarea class="textarea" id="description" placeholder="Add details buyers care about..." required></textarea>
+            </div>
+
+            <div class="col-12">
+              <label class="label" for="photos">Photos</label>
+              <input class="input" id="photos" type="text" placeholder="Paste image URL or comma-separated URLs" />
+            </div>
+
+            <div class="col-12" style="display:flex; gap:10px; justify-content:flex-end;">
+              <button class="btn" type="submit">Publish Listing</button>
+            </div>
+
+            <div class="col-12">
+              <p id="message"></p>
+            </div>
           </div>
-        </div>
+        </form>
       </section>
     </main>
   </body>
