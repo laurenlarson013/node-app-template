@@ -27,27 +27,31 @@ app.get('/', (req, res) => {
 });
 // Route to serve browse.html
 app.get('/browse', (req, res) => {
-    res.sendFile(__dirname + '/public/js/browse.html');
+    res.sendFile(__dirname + '/public/browse.html');
+});
+ //dashboard route
+app.get('/dashboard', (req, res) => {
+    res.sendFile(__dirname + '/public/dashboard.html');
 });
 
 // Route to serve profile.html
 app.get('/profile', (req, res) => {
-    res.sendFile(__dirname + '/public/js/profile.html');
+    res.sendFile(__dirname + '/public/profile.html');
 });
 
 // Route to serve listing-new.html
 app.get('/listing-new', (req, res) => {
-    res.sendFile(__dirname + '/public/js/listing-new.html');
+    res.sendFile(__dirname + '/public/listing-new.html');
 });
 
 // Route to serve my-listings.html
 app.get('/my-listings', (req, res) => {
-    res.sendFile(__dirname + '/public/js/my-listings.html');
+    res.sendFile(__dirname + '/public/my-listings.html');
 });
 
 // Route to serve messages.html
 app.get('/messages', (req, res) => {
-    res.sendFile(__dirname + '/public/js/messages.html');
+    res.sendFile(__dirname + '/public/messages.html');
 });
 //////////////////////////////////////
 //END ROUTES TO SERVE HTML FILES
