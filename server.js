@@ -115,6 +115,38 @@ async function authenticateToken(req, res, next) {
 //////////////////////////////////////
 //ROUTES TO HANDLE API REQUESTS
 //////////////////////////////////////
+app.post('/api/listings', authenticateToken, async (req, res) => {
+    const { 
+        title, description, price, photos, university, 
+        category, trade_option, item_condition, pickup_details 
+    } = req.body;
+
+    if (!title || !description || !price || !university || !category) {
+        return res.status(400).json({ message: 'Missing required fields.' });
+    }
+
+    try {
+        const connection = await createConnection();
+        const [result] = await connection.execute(
+            `INSERT INTO listings 
+            (title, description, price, photos, university, category, trade_option, item_condition, pickup_details, user_email) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+                title, description, price, photos, university, 
+                category, trade_option, item_condition, pickup_details, req.user.email
+            ]
+        );
+        await connection.end();
+
+        res.status(201).json({ 
+            message: 'Listing created successfully!',
+            listingId: result.insertId 
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Internal server error.' });
+    }
+});
 
 // Route: Create Account (Updated for Task 2)
 app.post('/api/create-account', async (req, res) => {
