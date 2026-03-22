@@ -1,4 +1,5 @@
-const token = localStorage.getItem("token");
+const TOKEN_KEY = "jwt_token";
+const token = localStorage.getItem(TOKEN_KEY);
 
 const preview = document.getElementById("preview");
 const imageInput = document.getElementById("imageUrl");
