@@ -117,8 +117,15 @@ async function authenticateToken(req, res, next) {
 //////////////////////////////////////
 app.post('/api/listings', authenticateToken, async (req, res) => {
     const { 
-        title, description, price, photos, university, 
-        category, trade_option, item_condition, pickup_details 
+        title, 
+        description, 
+        price, 
+        photos, 
+        university, 
+        category, 
+        trade_option, 
+        item_condition, 
+        pickup_details 
     } = req.body;
 
     if (!title || !description || !price || !university || !category) {
@@ -127,23 +134,30 @@ app.post('/api/listings', authenticateToken, async (req, res) => {
 
     try {
         const connection = await createConnection();
+        
+        // Aligned with the exact columns in Screenshot 2026-03-23 at 8.02.37 AM.jpg
         const [result] = await connection.execute(
             `INSERT INTO listings 
-            (title, description, price, photos, university, category, trade_option, item_condition, pickup_details, user_email) 
+            (title, listing_description, price, photos, university, category, trade_option, item_condition, pickup_details, user_email) 
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
-                title, description, price, photos, university, 
-                category, trade_option, item_condition, pickup_details, req.user.email
+                title, 
+                description, // Maps to 'listing_description' in DB
+                price, 
+                photos, 
+                university, 
+                category, 
+                trade_option, 
+                item_condition, 
+                pickup_details, 
+                req.user.email
             ]
         );
-        await connection.end();
 
-        res.status(201).json({ 
-            message: 'Listing created successfully!',
-            listingId: result.insertId 
-        });
+        await connection.end();
+        res.status(201).json({ message: 'Listing created successfully!', listingId: result.insertId });
     } catch (error) {
-        console.error(error);
+        console.error("Database Error:", error);
         res.status(500).json({ message: 'Internal server error.' });
     }
 });
