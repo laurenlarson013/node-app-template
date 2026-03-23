@@ -134,15 +134,13 @@ app.post('/api/listings', authenticateToken, async (req, res) => {
 
     try {
         const connection = await createConnection();
-        
-        // Aligned with the exact columns in Screenshot 2026-03-23 at 8.02.37 AM.jpg
         const [result] = await connection.execute(
             `INSERT INTO listings 
             (title, listing_description, price, photos, university, category, trade_option, item_condition, pickup_details, user_email) 
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
                 title, 
-                description, // Maps to 'listing_description' in DB
+                description, 
                 price, 
                 photos, 
                 university, 
