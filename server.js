@@ -318,7 +318,7 @@ app.get('/api/listings', async (req, res) => {
 
         const [rows] = await connection.execute(`
             SELECT 
-                l.id,
+                l.listing_id,
                 l.title,
                 l.listing_description AS description,
                 l.price,
