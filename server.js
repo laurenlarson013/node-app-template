@@ -107,14 +107,11 @@ async function authenticateToken(req, res, next) {
         }
     });
 }
-/////////////////////////////////////////////////
-//END HELPER FUNCTIONS AND AUTHENTICATION MIDDLEWARE
-/////////////////////////////////////////////////
-
-
 //////////////////////////////////////
 //ROUTES TO HANDLE API REQUESTS
 //////////////////////////////////////
+
+// Task 2: Create Listing API
 app.post('/api/listings', authenticateToken, async (req, res) => {
     const { 
         title, 
@@ -128,34 +125,33 @@ app.post('/api/listings', authenticateToken, async (req, res) => {
         pickup_details 
     } = req.body;
 
-    if (!title || !description || !price || !university || !category) {
-        return res.status(400).json({ message: 'Missing required fields.' });
-    }
+    // ... validation ...
 
     try {
         const connection = await createConnection();
+        
         const [result] = await connection.execute(
             `INSERT INTO listings 
-            (title, listing_description, price, photos, university, category, trade_option, item_condition, pickup_details, user_email) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            (listing_id, user_email, title, price, trade_option, item_condition, pickup_details, listing_description, photos, created_at, updated_at, university, category) 
+            VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, ?, ?)`,
             [
+                req.user.email,
                 title, 
-                description, 
                 price, 
-                photos, 
+                trade_option || 'None', 
+                item_condition || 'Good', 
+                pickup_details || 'MU', 
+                description, 
+                photos || '', 
                 university, 
-                category, 
-                trade_option, 
-                item_condition, 
-                pickup_details, 
-                req.user.email
+                category
             ]
         );
 
         await connection.end();
         res.status(201).json({ message: 'Listing created successfully!', listingId: result.insertId });
     } catch (error) {
-        console.error("Database Error:", error);
+        console.error("Database Error:", error); 
         res.status(500).json({ message: 'Internal server error.' });
     }
 });
@@ -197,6 +193,28 @@ app.post('/api/create-account', async (req, res) => {
             console.error(error);
             res.status(500).json({ message: 'Error creating account.' });
         }
+    }
+});
+
+ // Return listings created by the verified user//
+app.get('/api/my-listings', authenticateToken, async (req, res) => {
+    try {
+        const connection = await createConnection();
+
+        // Query the 'listings' table.
+        // Ordered by 'created_at' to show the latest posts first.
+        const [rows] = await connection.execute(
+            'SELECT * FROM listings WHERE user_email = ? ORDER BY created_at DESC',
+            [req.user.email]
+        );
+        await connection.end();
+
+        // Push the output to the frontend
+        res.status(200).json(rows);
+
+    } catch (error) {
+        console.error("Database Error in listings:", error);
+        res.status(500).json({ message: 'Cannot retrieve your listings.' });
     }
 });
 
