@@ -328,6 +328,44 @@ app.get('/api/users', authenticateToken, async (req, res) => {
         res.status(500).json({ message: 'Error retrieving email addresses.' });
     }
 });
+
+// GET /api/listings — Browse Page
+app.get('/api/listings', async (req, res) => {
+    try {
+        const connection = await createConnection();
+
+        const [rows] = await connection.execute(`
+            SELECT 
+                l.listing_id,
+                l.title,
+                l.listing_description AS description,
+                l.price,
+                l.photos,
+                l.university,
+                l.category,
+                l.trade_option,
+                l.item_condition,
+                l.pickup_details,
+                l.created_at,
+
+                u.full_name AS seller_name,
+                u.profile_photo_url AS seller_photo,
+                u.campus AS seller_university
+
+            FROM listings l
+            JOIN user u ON l.user_email = u.email
+            ORDER BY l.created_at DESC
+        `);
+
+        await connection.end();
+
+        res.json(rows);
+    } catch (err) {
+        console.error("Error fetching listings:", err);
+        res.status(500).json({ message: "Server error fetching listings" });
+    }
+});
+
 //////////////////////////////////////
 //END ROUTES TO HANDLE API REQUESTS
 //////////////////////////////////////
