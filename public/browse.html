@@ -1,87 +1,118 @@
-<!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <title>Browse Listings</title>
-    <link rel="stylesheet" href="/css/styles.css" />
-    <script defer src="/js/authGuard.js"></script>
-    <script defer src="/js/logout.js"></script>
-  </head>
-  <body>
-    <header>
-      <nav class="nav">
-        <a href="/dashboard">Dashboard</a>
-        <a href="/browse.html">Browse</a>
-        <a href="/listing-new.html">New Listing</a>
-        <a href="/my-listings.html">My Listings</a>
-        <a href="/messages.html">Messages</a>
-        <a href="/profile.html">Profile</a>
-        <span class="spacer"></span>
-        <button class="btn" id="logoutBtn">Logout</button>
-      </nav>
-    </header>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Browse Listings</title>
+  <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body>
+  <header>
+    <nav class="nav">
+      <a href="/dashboard">Dashboard</a>
+      <a href="/browse">Browse</a>
+      <a href="/listing-new">New Listing</a>
+      <a href="/my-listings">My Listings</a>
+      <a href="/messages">Messages</a>
+      <a href="/profile">Profile</a>
+      <span class="spacer"></span>
+      <button class="btn" id="logoutBtn">Logout</button>
+    </nav>
+  </header>
 
-    <main class="container">
-      <h1 class="h1">Browse</h1>
-      <p class="kicker">Search + filter listings within your campus community (layout stub)</p>
+  <main class="browse-page">
+    <section class="browse-header">
+      <h1>Browse</h1>
+      <p>Search and filter listings within your campus community.</p>
+    </section>
 
-      <section class="card" style="margin-top:14px;">
-        <div class="grid">
-          <div class="col-8">
-            <label class="label">Search</label>
-            <input class="input" placeholder="textbook, mini fridge, desk lamp..." />
+    <section class="filters-card">
+      <div class="filters-grid">
+        <div class="filter-group filter-search">
+          <label for="searchInput">Search</label>
+          <input
+            type="text"
+            id="searchInput"
+            placeholder="textbook, mini fridge, desk lamp..."
+          />
+        </div>
+
+        <div class="filter-group">
+          <label for="categoryFilter">Category</label>
+          <select id="categoryFilter">
+            <option value="All">All</option>
+            <option value="Textbooks">Textbooks</option>
+            <option value="Dorm Essentials">Dorm Essentials</option>
+            <option value="School Supplies">School Supplies</option>
+            <option value="Clothing">Clothing</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label for="sortFilter">Sort</label>
+          <select id="sortFilter">
+            <option value="newest">Newest</option>
+            <option value="price-low">Price: Low to High</option>
+            <option value="price-high">Price: High to Low</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label for="priceFilter">Max Price</label>
+          <input type="number" id="priceFilter" min="0" placeholder="50" />
+        </div>
+
+        <div class="filter-actions">
+          <button id="applyFiltersBtn" type="button">Apply Filters</button>
+          <button id="clearFiltersBtn" type="button">Clear</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="listingsSection">
+      <div id="listingsStatus" class="listings-status">Loading listings...</div>
+      <div id="listingsContainer" class="listings-grid"></div>
+    </section>
+  </main>
+
+  <div id="listingModal" class="listing-modal hidden">
+    <div class="listing-modal-backdrop" id="listingModalBackdrop"></div>
+  
+    <div class="listing-modal-content">
+      <button id="listingModalClose" class="listing-modal-close" type="button">&times;</button>
+  
+      <div class="listing-modal-grid">
+        <div class="listing-modal-image-wrap">
+          <img id="modalImage" class="listing-modal-image" src="" alt="Listing image" />
+        </div>
+  
+        <div class="listing-modal-info">
+          <div class="listing-modal-top-row">
+            <span id="modalCategory" class="listing-category">Listing</span>
+            <span id="modalTrade" class="listing-trade">For Sale</span>
           </div>
-          <div class="col-4">
-            <label class="label">Category</label>
-            <select class="select">
-              <option>All</option>
-              <option>Textbooks</option>
-              <option>Dorm Essentials</option>
-              <option>School Supplies</option>
-              <option>Clothing</option>
-            </select>
+  
+          <h2 id="modalTitle" class="listing-modal-title">Title</h2>
+          <p id="modalPrice" class="listing-modal-price">$0.00</p>
+  
+          <div class="listing-modal-details">
+            <p><strong>Description:</strong> <span id="modalDescription"></span></p>
+            <p><strong>Condition:</strong> <span id="modalCondition"></span></p>
+            <p><strong>University:</strong> <span id="modalUniversity"></span></p>
+            <p><strong>Pickup:</strong> <span id="modalPickup"></span></p>
+            <p><strong>Seller:</strong> <span id="modalSeller"></span></p>
           </div>
-
-          <div class="col-4">
-            <label class="label">Sort</label>
-            <select class="select">
-              <option>Newest</option>
-              <option>Price: Low to High</option>
-              <option>Price: High to Low</option>
-            </select>
-          </div>
-
-          <div class="col-4">
-            <label class="label">Price Range</label>
-            <input class="input" placeholder="$0 - $50" />
-          </div>
-
-          <div class="col-4" style="display:flex; align-items:end; gap:10px;">
-            <button class="btn" style="width:100%;">Apply Filters</button>
-            <button class="btn" style="width:100%;">Clear</button>
+  
+          <div class="listing-modal-actions">
+            <button type="button" class="modal-action-btn">Message Seller</button>
+            <button type="button" class="modal-action-btn">Buy</button>
+            <button type="button" class="modal-action-btn">Offer Trade</button>
           </div>
         </div>
-      </section>
+      </div>
+    </div>
+  </div>
 
-      <section style="margin-top:14px;">
-        <div class="listing-grid">
-          <div class="card">
-            <div class="pill">Textbook</div>
-            <h2 class="h2" style="margin-top:10px;">CIS 440 Textbook</h2>
-            <p class="kicker">$35 • pickup on campus</p>
-          </div>
-          <div class="card">
-            <div class="pill">Dorm</div>
-            <h2 class="h2" style="margin-top:10px;">Mini fan</h2>
-            <p class="kicker">$10 • great condition</p>
-          </div>
-          <div class="card">
-            <div class="pill">Supplies</div>
-            <h2 class="h2" style="margin-top:10px;">Calculator</h2>
-            <p class="kicker">$15 • available</p>
-          </div>
-        </div>
-      </section>
-    </main>
-  </body>
+  <script src="/js/listings.js"></script>
+</body>
 </html>
