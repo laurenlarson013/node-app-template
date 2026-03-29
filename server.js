@@ -21,47 +21,38 @@ app.use(express.static('public'));
 // ROUTES TO SERVE HTML FILES
 //////////////////////////////////////
 
-// Default route to serve logon.html
 app.get('/', (req, res) => {
     res.sendFile(__dirname + '/public/logon.html');
 });
-// Route to serve browse.html
+
 app.get('/browse', (req, res) => {
     res.sendFile(__dirname + '/public/browse.html');
 });
- //dashboard route
+
 app.get('/dashboard', (req, res) => {
     res.sendFile(__dirname + '/public/dashboard.html');
 });
 
-// Route to serve profile.html
 app.get('/profile', (req, res) => {
     res.sendFile(__dirname + '/public/profile.html');
 });
 
-// Route to serve listing-new.html
 app.get('/listing-new', (req, res) => {
     res.sendFile(__dirname + '/public/listing-new.html');
 });
 
-// Route to serve my-listings.html
 app.get('/my-listings', (req, res) => {
     res.sendFile(__dirname + '/public/my-listings.html');
 });
 
-// Route to serve messages.html
 app.get('/messages', (req, res) => {
     res.sendFile(__dirname + '/public/messages.html');
 });
+
 //////////////////////////////////////
-//END ROUTES TO SERVE HTML FILES
+// HELPER FUNCTIONS AND AUTH MIDDLEWARE
 //////////////////////////////////////
 
-
-/////////////////////////////////////////////////
-//HELPER FUNCTIONS AND AUTHENTICATION MIDDLEWARE
-/////////////////////////////////////////////////
-// Helper function to create a MySQL connection
 async function createConnection() {
     return await mysql.createConnection({
         host: process.env.DB_HOST,
@@ -71,7 +62,6 @@ async function createConnection() {
     });
 }
 
-// **Authorization Middleware: Verify JWT Token and Check User in Database**
 async function authenticateToken(req, res, next) {
     const token = req.headers['authorization'];
 
@@ -87,76 +77,78 @@ async function authenticateToken(req, res, next) {
         try {
             const connection = await createConnection();
 
-            // Query the database to verify that the email is associated with an active account
             const [rows] = await connection.execute(
                 'SELECT email FROM user WHERE email = ?',
                 [decoded.email]
             );
 
-            await connection.end();  // Close connection
+            await connection.end();
 
             if (rows.length === 0) {
                 return res.status(403).json({ message: 'Account not found or deactivated.' });
             }
 
-            req.user = decoded;  // Save the decoded email for use in the route
-            next();  // Proceed to the next middleware or route handler
+            req.user = decoded;
+            next();
         } catch (dbError) {
             console.error(dbError);
             res.status(500).json({ message: 'Database error during authentication.' });
         }
     });
 }
+
 //////////////////////////////////////
-//ROUTES TO HANDLE API REQUESTS
+// API ROUTES
 //////////////////////////////////////
 
-// Task 2: Create Listing API
+// Create Listing
 app.post('/api/listings', authenticateToken, async (req, res) => {
-    const { 
-        title, 
-        description, 
-        price, 
-        photos, 
-        university, 
-        category, 
-        trade_option, 
-        item_condition, 
-        pickup_details 
+    const {
+        title,
+        description,
+        price,
+        photos,
+        university,
+        category,
+        trade_option,
+        item_condition,
+        pickup_details
     } = req.body;
-
-    // ... validation ...
 
     try {
         const connection = await createConnection();
-        
+
         const [result] = await connection.execute(
-            `INSERT INTO listings 
-            (listing_id, user_email, title, price, trade_option, item_condition, pickup_details, listing_description, photos, created_at, updated_at, university, category) 
-            VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, ?, ?)`,
+            `INSERT INTO listings
+            (listing_id, user_email, title, price, trade_option, item_condition, pickup_details, listing_description, photos, created_at, updated_at, university, category, status)
+            VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, ?, ?, ?)`,
             [
                 req.user.email,
-                title, 
-                price, 
-                trade_option || 'None', 
-                item_condition || 'Good', 
-                pickup_details || 'MU', 
-                description, 
-                photos || '', 
-                university, 
-                category
+                title,
+                price,
+                trade_option || 'None',
+                item_condition || 'Good',
+                pickup_details || 'MU',
+                description,
+                photos || '',
+                university,
+                category,
+                'Active'
             ]
         );
 
         await connection.end();
-        res.status(201).json({ message: 'Listing created successfully!', listingId: result.insertId });
+        res.status(201).json({
+            message: 'Listing created successfully!',
+            listingId: result.insertId
+        });
     } catch (error) {
-        console.error("Database Error:", error); 
+        console.error("Database Error:", error);
         res.status(500).json({ message: 'Internal server error.' });
     }
 });
 
-// Route: Create Account (Updated for Task 2)
+// Create Account
 app.post('/api/create-account', async (req, res) => {
     let { email, password } = req.body;
 
@@ -164,13 +156,11 @@ app.post('/api/create-account', async (req, res) => {
         return res.status(400).json({ message: 'Email and password are required.' });
     }
 
-    // 1. Trim and lowercase email
     email = email.trim().toLowerCase();
 
-    // 2. Reject if email does not end with .edu
     if (!email.endsWith('.edu')) {
-        return res.status(403).json({ 
-            message: 'Only students with a valid .edu email address can sign up.' 
+        return res.status(403).json({
+            message: 'Only students with a valid .edu email address can sign up.'
         });
     }
 
@@ -178,10 +168,9 @@ app.post('/api/create-account', async (req, res) => {
         const connection = await createConnection();
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // 3. Insert user with is_verified = 1
-        const [result] = await connection.execute(
+        await connection.execute(
             'INSERT INTO user (email, password, is_verified) VALUES (?, ?, ?)',
-            [email, hashedPassword, 1] // Verified by default for .edu
+            [email, hashedPassword, 1]
         );
 
         await connection.end();
@@ -196,29 +185,25 @@ app.post('/api/create-account', async (req, res) => {
     }
 });
 
- // Return listings created by the verified user//
+// My Listings
 app.get('/api/my-listings', authenticateToken, async (req, res) => {
     try {
         const connection = await createConnection();
 
-        // Query the 'listings' table.
-        // Ordered by 'created_at' to show the latest posts first.
         const [rows] = await connection.execute(
             'SELECT * FROM listings WHERE user_email = ? ORDER BY created_at DESC',
             [req.user.email]
         );
+
         await connection.end();
-
-        // Push the output to the frontend
         res.status(200).json(rows);
-
     } catch (error) {
         console.error("Database Error in listings:", error);
         res.status(500).json({ message: 'Cannot retrieve your listings.' });
     }
 });
 
-// Route: Logon
+// Login
 app.post('/api/login', async (req, res) => {
     const { email, password } = req.body;
 
@@ -234,7 +219,7 @@ app.post('/api/login', async (req, res) => {
             [email]
         );
 
-        await connection.end();  // Close connection
+        await connection.end();
 
         if (rows.length === 0) {
             return res.status(401).json({ message: 'Invalid email or password.' });
@@ -260,12 +245,11 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
-// Route: Get Profile 
+// Get Profile
 app.get('/api/me', authenticateToken, async (req, res) => {
     try {
         const connection = await createConnection();
 
-        // Query using exact column names from your database screenshot
         const [rows] = await connection.execute(
             'SELECT email, full_name, bio, campus, location, profile_photo_url, is_verified FROM user WHERE email = ?',
             [req.user.email]
@@ -284,17 +268,16 @@ app.get('/api/me', authenticateToken, async (req, res) => {
     }
 });
 
-// Task 4 — Backend: Update Profile
+// Update Profile
 app.put('/api/me', authenticateToken, async (req, res) => {
     const { full_name, bio, campus, location, profile_photo_url } = req.body;
 
     try {
         const connection = await createConnection();
 
-        // Update the user table using the email from the JWT (req.user.email)
         const [result] = await connection.execute(
-            `UPDATE user 
-             SET full_name = ?, bio = ?, campus = ?, location = ?, profile_photo_url = ? 
+            `UPDATE user
+             SET full_name = ?, bio = ?, campus = ?, location = ?, profile_photo_url = ?
              WHERE email = ?`,
             [full_name, bio, campus, location, profile_photo_url, req.user.email]
         );
@@ -312,14 +295,14 @@ app.put('/api/me', authenticateToken, async (req, res) => {
     }
 });
 
-// Route: Get All Email Addresses
+// Get All Email Addresses
 app.get('/api/users', authenticateToken, async (req, res) => {
     try {
         const connection = await createConnection();
 
         const [rows] = await connection.execute('SELECT email FROM user');
 
-        await connection.end();  // Close connection
+        await connection.end();
 
         const emailList = rows.map((row) => row.email);
         res.status(200).json({ emails: emailList });
@@ -329,13 +312,13 @@ app.get('/api/users', authenticateToken, async (req, res) => {
     }
 });
 
-// GET /api/listings — Browse Page
+// Browse Listings
 app.get('/api/listings', async (req, res) => {
     try {
         const connection = await createConnection();
 
         const [rows] = await connection.execute(`
-            SELECT 
+            SELECT
                 l.listing_id,
                 l.title,
                 l.listing_description AS description,
@@ -347,18 +330,16 @@ app.get('/api/listings', async (req, res) => {
                 l.item_condition,
                 l.pickup_details,
                 l.created_at,
-
+                l.status,
                 u.full_name AS seller_name,
                 u.profile_photo_url AS seller_photo,
                 u.campus AS seller_university
-
             FROM listings l
             JOIN user u ON l.user_email = u.email
             ORDER BY l.created_at DESC
         `);
 
         await connection.end();
-
         res.json(rows);
     } catch (err) {
         console.error("Error fetching listings:", err);
@@ -366,9 +347,112 @@ app.get('/api/listings', async (req, res) => {
     }
 });
 
-//////////////////////////////////////
-//END ROUTES TO HANDLE API REQUESTS
-//////////////////////////////////////
+// Edit Listing
+app.put('/api/listings/:id', authenticateToken, async (req, res) => {
+    const {
+        title,
+        description,
+        price,
+        university,
+        category,
+        trade_option,
+        item_condition,
+        pickup_details,
+        photos
+    } = req.body;
+
+    try {
+        const connection = await createConnection();
+
+        const [result] = await connection.execute(
+            `UPDATE listings
+             SET title = ?,
+                 listing_description = ?,
+                 price = ?,
+                 university = ?,
+                 category = ?,
+                 trade_option = ?,
+                 item_condition = ?,
+                 pickup_details = ?,
+                 photos = ?,
+                 updated_at = CURRENT_TIMESTAMP
+             WHERE listing_id = ? AND user_email = ?`,
+            [
+                title,
+                description,
+                price,
+                university,
+                category,
+                trade_option,
+                item_condition,
+                pickup_details,
+                photos || '',
+                req.params.id,
+                req.user.email
+            ]
+        );
+
+        await connection.end();
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: 'Listing not found.' });
+        }
+
+        res.status(200).json({ message: 'Listing updated successfully.' });
+    } catch (error) {
+        console.error("Edit listing error:", error);
+        res.status(500).json({ message: 'Error updating listing.' });
+    }
+});
+
+// Mark Listing as Sold
+app.put('/api/listings/:id/mark-sold', authenticateToken, async (req, res) => {
+    try {
+        const connection = await createConnection();
+
+        const [result] = await connection.execute(
+            `UPDATE listings
+             SET status = ?, updated_at = CURRENT_TIMESTAMP
+             WHERE listing_id = ? AND user_email = ?`,
+            ['Sold', req.params.id, req.user.email]
+        );
+
+        await connection.end();
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: 'Listing not found.' });
+        }
+
+        res.status(200).json({ message: 'Listing marked as sold.' });
+    } catch (error) {
+        console.error("Mark sold error:", error);
+        res.status(500).json({ message: 'Error marking listing sold.' });
+    }
+});
+
+// Delete Listing
+app.delete('/api/listings/:id', authenticateToken, async (req, res) => {
+    try {
+        const connection = await createConnection();
+
+        const [result] = await connection.execute(
+            `DELETE FROM listings
+             WHERE listing_id = ? AND user_email = ?`,
+            [req.params.id, req.user.email]
+        );
+
+        await connection.end();
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: 'Listing not found.' });
+        }
+
+        res.status(200).json({ message: 'Listing deleted successfully.' });
+    } catch (error) {
+        console.error("Delete listing error:", error);
+        res.status(500).json({ message: 'Error deleting listing.' });
+    }
+});
 
 // Start the server
 app.listen(port, () => {

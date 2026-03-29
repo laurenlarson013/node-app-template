@@ -587,3 +587,177 @@ body.modal-open {
     grid-template-columns: 1fr;
   }
 }
+
+.my-listing-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.my-listing-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.my-listing-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.edit-listing-form {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.edit-field label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.edit-field input,
+.edit-field textarea {
+  width: 100%;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text);
+  padding: 12px 14px;
+  border-radius: 12px;
+  outline: none;
+  font: inherit;
+}
+
+.edit-field textarea {
+  resize: vertical;
+  min-height: 90px;
+}
+
+.edit-listing-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.edit-listing-form {
+  display: grid;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.edit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.edit-field label {
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.edit-field input,
+.edit-field textarea,
+.edit-field select {
+  width: 100%;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text);
+  padding: 12px 14px;
+  border-radius: 12px;
+  outline: none;
+  font: inherit;
+  box-shadow: none;
+}
+
+.edit-field input::placeholder,
+.edit-field textarea::placeholder {
+  color: var(--muted);
+  opacity: 0.7;
+}
+
+.edit-field input:focus,
+.edit-field textarea:focus,
+.edit-field select:focus {
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.edit-field textarea {
+  min-height: 110px;
+  resize: vertical;
+}
+
+.edit-listing-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.listing-modal-content {
+  position: relative;
+  z-index: 1001;
+  width: min(760px, calc(100vw - 32px));
+  max-height: 85vh;
+  overflow-y: auto;
+  margin: 5vh auto 0;
+  background: #121a2a;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 22px;
+  padding: 28px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+}
+
+body.modal-open {
+  overflow: hidden;
+}
+
+.edit-listing-form {
+  display: grid;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.edit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.edit-field label {
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.edit-field input,
+.edit-field textarea,
+.edit-field select {
+  width: 100%;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text);
+  padding: 12px 14px;
+  border-radius: 12px;
+  outline: none;
+  font: inherit;
+  box-shadow: none;
+}
+
+.edit-field textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.edit-listing-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 8px;
+  padding-bottom: 4px;
+}

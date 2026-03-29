@@ -1,65 +1,108 @@
-<!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <title>My Listings</title>
-    <link rel="stylesheet" href="/css/styles.css" />
-    <script defer src="/js/authGuard.js"></script>
-    <script defer src="/js/logout.js"></script>
-  </head>
-  <body>
-    <header>
-      <nav class="nav">
-        <a href="/dashboard">Dashboard</a>
-        <a href="/browse.html">Browse</a>
-        <a href="/listing-new.html">New Listing</a>
-        <a href="/my-listings.html">My Listings</a>
-        <a href="/messages.html">Messages</a>
-        <a href="/profile.html">Profile</a>
-        <span class="spacer"></span>
-        <button class="btn" id="logoutBtn">Logout</button>
-      </nav>
-    </header>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Listings</title>
+  <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body>
+  <header>
+    <nav class="nav">
+      <a href="/dashboard">Dashboard</a>
+      <a href="/browse">Browse</a>
+      <a href="/listing-new">New Listing</a>
+      <a href="/my-listings">My Listings</a>
+      <a href="/messages">Messages</a>
+      <a href="/profile">Profile</a>
+      <span class="spacer"></span>
+      <button class="btn" id="logoutBtn">Logout</button>
+    </nav>
+  </header>
 
-    <main class="container">
-      <h1 class="h1">My Listings</h1>
-    
-      <section class="card" style="margin-top:14px;">
-        <table class="table">
-          <thead>
-            <tr>
-              <th>Title</th>
-              <th>Status</th>
-              <th>Price</th>
-              <th>Posted</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>CIS 440 Textbook</td>
-              <td><span class="pill">Active</span></td>
-              <td>$35</td>
-              <td>Today</td>
-              <td style="display:flex; gap:8px;">
-                <button class="btn" type="button">Edit</button>
-                <button class="btn" type="button">Mark Sold</button>
-                <button class="btn" type="button">Delete</button>
-              </td>
-            </tr>
-            <tr>
-              <td>Desk lamp</td>
-              <td><span class="pill">Sold</span></td>
-              <td>$8</td>
-              <td>Last week</td>
-              <td style="display:flex; gap:8px;">
-                <button class="btn" type="button">View</button>
-                <button class="btn" type="button">Delete</button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </section>
-    </main>
-  </body>
+  <main class="container">
+    <h1 class="h1">My Listings</h1>
+
+    <section class="card">
+      <div id="myListingsStatus" class="listings-status">Loading your listings...</div>
+
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Status</th>
+            <th>Price</th>
+            <th>Posted</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="myListingsBody"></tbody>
+      </table>
+    </section>
+  </main>
+
+  <div id="editListingModal" class="listing-modal hidden">
+    <div id="editListingBackdrop" class="listing-modal-backdrop"></div>
+
+    <div class="listing-modal-content">
+      <button id="editListingClose" class="listing-modal-close" type="button">&times;</button>
+
+      <h2 class="listing-modal-title">Edit Listing</h2>
+
+      <div class="edit-listing-form">
+        <div class="edit-field">
+          <label for="editTitle">Title</label>
+          <input id="editTitle" type="text" />
+        </div>
+
+        <div class="edit-field">
+          <label for="editDescription">Description</label>
+          <textarea id="editDescription" rows="4"></textarea>
+        </div>
+
+        <div class="edit-field">
+          <label for="editPrice">Price</label>
+          <input id="editPrice" type="number" min="0" step="0.01" />
+        </div>
+
+        <div class="edit-field">
+          <label for="editUniversity">University</label>
+          <input id="editUniversity" type="text" />
+        </div>
+
+        <div class="edit-field">
+          <label for="editCategory">Category</label>
+          <input id="editCategory" type="text" />
+        </div>
+
+        <div class="edit-field">
+          <label for="editTradeOption">Trade Option</label>
+          <input id="editTradeOption" type="text" />
+        </div>
+
+        <div class="edit-field">
+          <label for="editCondition">Condition</label>
+          <input id="editCondition" type="text" />
+        </div>
+
+        <div class="edit-field">
+          <label for="editPickup">Pickup Details</label>
+          <input id="editPickup" type="text" />
+        </div>
+
+        <div class="edit-field">
+          <label for="editPhotos">Photo URL / image string</label>
+          <textarea id="editPhotos" rows="3"></textarea>
+        </div>
+
+        <div class="edit-listing-actions">
+          <button id="saveListingChanges" class="btn" type="button">Save Changes</button>
+          <button id="cancelListingChanges" class="btn" type="button">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/my-listings.js?v=3"></script>
+</body>
 </html>
