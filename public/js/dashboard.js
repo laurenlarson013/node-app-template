@@ -76,7 +76,14 @@ async function renderUserList() {
 async function loadDashboardListings() {
     try {
         const res = await fetch('/api/listings');
-        const listings = await res.json();
+        const data = await res.json();
+
+        if (!data.success) {
+            console.error("Failed to load listings");
+            return;
+        }
+
+        const listings = data.listings; // <-- FIXED
 
         const container = document.getElementById('listingsContainer');
         container.innerHTML = ""; // clear old content
@@ -85,10 +92,14 @@ async function loadDashboardListings() {
             const card = document.createElement('div');
             card.classList.add('listing-card');
 
+            const photos = JSON.parse(listing.photos || "[]");
+            const firstPhoto = photos[0] || "default.jpg";
+
             card.innerHTML = `
-                <img src="${JSON.parse(listing.photos)[0]}" class="listing-photo">
+                <img src="${firstPhoto}" class="listing-photo">
                 <h3>${listing.title}</h3>
                 <p>$${listing.price}</p>
+
                 <div class="seller-info">
                     <img src="${listing.seller_photo}" class="seller-photo">
                     <span>${listing.seller_name} — ${listing.seller_university}</span>
