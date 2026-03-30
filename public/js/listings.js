@@ -313,3 +313,46 @@ function setupModalEvents() {
     }
   });
 }
+
+async function loadDashboardListings() {
+    try {
+        const res = await fetch('/api/listings');
+        const data = await res.json();
+
+        if (!data.success) {
+            console.error("Failed to load listings");
+            return;
+        }
+
+        const listings = data.listings;
+
+        const container = document.getElementById('listingsContainer');
+        container.innerHTML = "";
+
+        listings.forEach(listing => {
+            const card = document.createElement('div');
+            card.classList.add('listing-card');
+
+            const photos = JSON.parse(listing.photos || "[]");
+            const firstPhoto = photos[0] || "/img/default.jpg";
+
+            card.innerHTML = `
+                <img src="${firstPhoto}" class="listing-photo">
+                <h3>${listing.title}</h3>
+                <p>$${listing.price}</p>
+
+                <div class="seller-info">
+                    <img src="${listing.seller_photo}" class="seller-photo">
+                    <span>${listing.seller_name} — ${listing.seller_university}</span>
+                </div>
+            `;
+
+            container.appendChild(card);
+        });
+
+    } catch (err) {
+        console.error("Error loading dashboard listings:", err);
+    }
+}
+
+loadDashboardListings();
