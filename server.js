@@ -336,6 +336,7 @@ app.get('/api/listings', async (req, res) => {
                 u.campus AS seller_university
             FROM listings l
             JOIN user u ON l.user_email = u.email
+            WHERE l.status = 'Active'
             ORDER BY l.created_at DESC
         `);
 
