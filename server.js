@@ -35,7 +35,7 @@ app.get('/dashboard', (req, res) => {
 
 app.get('/profile', (req, res) => {
     res.sendFile(__dirname + '/public/profile.html');
-});
+  });
 
 app.get('/listing-new', (req, res) => {
     res.sendFile(__dirname + '/public/listing-new.html');

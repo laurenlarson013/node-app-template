@@ -6,16 +6,17 @@
     <link rel="stylesheet" href="/css/styles.css" />
     <script defer src="/js/authGuard.js"></script>
     <script defer src="/js/logout.js"></script>
+    <script defer src="/js/profile.js"></script>
   </head>
   <body>
     <header>
       <nav class="nav">
         <a href="/dashboard">Dashboard</a>
-        <a href="/browse.html">Browse</a>
-        <a href="/listing-new.html">New Listing</a>
-        <a href="/my-listings.html">My Listings</a>
-        <a href="/messages.html">Messages</a>
-        <a href="/profile.html">Profile</a>
+        <a href="/browse">Browse</a>
+        <a href="/listing-new">New Listing</a>
+        <a href="/my-listings">My Listings</a>
+        <a href="/messages">Messages</a>
+        <a href="/profile">Profile</a>
         <span class="spacer"></span>
         <button class="btn" id="logoutBtn">Logout</button>
       </nav>
@@ -27,24 +28,29 @@
       <div class="grid" style="margin-top:14px;">
         <section class="card col-6">
           <h2 class="h2">Profile Info</h2>
+
           <div style="margin-top:12px;">
-            <label class="label">Display Name</label>
-            <input class="input" placeholder="Ex: Dina L." />
+            <label class="label" for="fullName">Display Name</label>
+            <input class="input" id="fullName" type="text" placeholder="Ex: Dina L." />
           </div>
+
           <div style="margin-top:12px;">
-            <label class="label">Email (.edu)</label>
-            <input class="input" placeholder="you@school.edu" disabled />
+            <label class="label" for="email">Email (.edu)</label>
+            <input class="input" id="email" type="email" placeholder="you@school.edu" disabled />
           </div>
+
           <div style="margin-top:12px;">
-            <label class="label">Bio</label>
-            <textarea class="textarea" placeholder="Quick intro..."></textarea>
+            <label class="label" for="bio">Bio</label>
+            <textarea class="textarea" id="bio" placeholder="Quick intro..."></textarea>
           </div>
+
           <div style="margin-top:12px;">
-            <label class="label">Profile Photo</label>
-            <input class="input" type="file" />
+            <label class="label" for="profilePhotoUrl">Profile Photo URL</label>
+            <input class="input" id="profilePhotoUrl" type="text" placeholder="Paste image URL here" />
           </div>
+
           <div style="margin-top:12px; display:flex; justify-content:flex-end;">
-            <button class="btn" type="button">Save Changes</button>
+            <button class="btn" id="saveProfileBtn" type="button">Save Changes</button>
           </div>
         </section>
 
@@ -53,24 +59,27 @@
           <p class="kicker">Used for automatic marketplace filtering</p>
 
           <div style="margin-top:12px;">
-            <label class="label">University / Campus</label>
-            <select class="select">
-              <option>Arizona State University - Tempe</option>
-              <option>Arizona State University - Downtown</option>
-              <option>Other (placeholder)</option>
+            <label class="label" for="campus">University / Campus</label>
+            <select class="select" id="campus">
+              <option value="">Select campus</option>
+              <option value="Arizona State University - Tempe">Arizona State University - Tempe</option>
+              <option value="Arizona State University - Downtown">Arizona State University - Downtown</option>
+              <option value="Other">Other</option>
             </select>
           </div>
 
           <div style="margin-top:12px;">
-            <label class="label">Default pickup zone</label>
-            <input class="input" placeholder="Ex: Memorial Union" />
+            <label class="label" for="location">Default pickup zone</label>
+            <input class="input" id="location" type="text" placeholder="Ex: Memorial Union" />
           </div>
 
           <div style="margin-top:12px; display:flex; justify-content:flex-end;">
-            <button class="btn" type="button">Update Campus</button>
+            <button class="btn" id="updateCampusBtn" type="button">Update Campus</button>
           </div>
         </section>
       </div>
+
+      <p id="profileMessage" style="margin-top:16px;"></p>
     </main>
   </body>
 </html>
