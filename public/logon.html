@@ -19,6 +19,7 @@
         <div id="form-container">
             <!-- Logon Form -->
             <form id="logon-form" class="active-form">
+
                 <label for="login-email">Email:</label>
                 <input type="email" id="login-email" placeholder="Enter your email" required>
 
@@ -30,15 +31,17 @@
 
             <!-- Create Account Form -->
             <form id="create-account-form">
+                <label for="create-name">Full Name:</label>
+                <input type="text" id="create-name" name="create-name" required />
+              
                 <label for="create-email">Email:</label>
-                <input type="email" id="create-email" placeholder="Enter your email" required>
-
+                <input type="email" id="create-email" name="create-email" required />
+              
                 <label for="create-password">Password:</label>
-                <input type="password" id="create-password" placeholder="Create your password" required>
-
+                <input type="password" id="create-password" name="create-password" required />
+              
                 <button type="submit" class="button">Create Account</button>
-            </form>
-
+              </form>
             <p id="message" class="message"></p>
         </div>
     </div>

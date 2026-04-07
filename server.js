@@ -150,40 +150,39 @@ app.post('/api/listings', authenticateToken, async (req, res) => {
 
 // Create Account
 app.post('/api/create-account', async (req, res) => {
-    let { email, password } = req.body;
-
-    if (!email || !password) {
-        return res.status(400).json({ message: 'Email and password are required.' });
+    let { full_name, email, password } = req.body;
+  
+    if (!full_name || !email || !password) {
+      return res.status(400).json({ message: 'Name, email, and password are required.' });
     }
-
+  
+    full_name = full_name.trim();
     email = email.trim().toLowerCase();
-
+  
     if (!email.endsWith('.edu')) {
-        return res.status(403).json({
-            message: 'Only students with a valid .edu email address can sign up.'
-        });
+      return res.status(403).json({ message: 'Only students with a valid .edu email address can sign up.' });
     }
-
+  
     try {
-        const connection = await createConnection();
-        const hashedPassword = await bcrypt.hash(password, 10);
-
-        await connection.execute(
-            'INSERT INTO user (email, password, is_verified) VALUES (?, ?, ?)',
-            [email, hashedPassword, 1]
-        );
-
-        await connection.end();
-        res.status(201).json({ message: 'Account created successfully!' });
+      const connection = await createConnection();
+      const hashedPassword = await bcrypt.hash(password, 10);
+  
+      await connection.execute(
+        'INSERT INTO user (email, full_name, password, is_verified) VALUES (?, ?, ?, ?)',
+        [email, full_name, hashedPassword, 1]
+      );
+  
+      await connection.end();
+      res.status(201).json({ message: 'Account created successfully!' });
     } catch (error) {
-        if (error.code === 'ER_DUP_ENTRY') {
-            res.status(409).json({ message: 'An account with this email already exists.' });
-        } else {
-            console.error(error);
-            res.status(500).json({ message: 'Error creating account.' });
-        }
+      if (error.code === 'ER_DUP_ENTRY') {
+        res.status(409).json({ message: 'An account with this email already exists.' });
+      } else {
+        console.error(error);
+        res.status(500).json({ message: 'Error creating account.' });
+      }
     }
-});
+  });
 
 // My Listings
 app.get('/api/my-listings', authenticateToken, async (req, res) => {
@@ -206,44 +205,45 @@ app.get('/api/my-listings', authenticateToken, async (req, res) => {
 // Login
 app.post('/api/login', async (req, res) => {
     const { email, password } = req.body;
-
+  
     if (!email || !password) {
-        return res.status(400).json({ message: 'Email and password are required.' });
+      return res.status(400).json({ message: 'Email and password are required.' });
     }
-
+  
     try {
-        const connection = await createConnection();
-
-        const [rows] = await connection.execute(
-            'SELECT * FROM user WHERE email = ?',
-            [email]
-        );
-
-        await connection.end();
-
-        if (rows.length === 0) {
-            return res.status(401).json({ message: 'Invalid email or password.' });
-        }
-
-        const user = rows[0];
-
-        const isPasswordValid = await bcrypt.compare(password, user.password);
-        if (!isPasswordValid) {
-            return res.status(401).json({ message: 'Invalid email or password.' });
-        }
-
-        const token = jwt.sign(
-            { email: user.email },
-            process.env.JWT_SECRET,
-            { expiresIn: '1h' }
-        );
-
-        res.status(200).json({ token });
+      const connection = await createConnection();
+      const [rows] = await connection.execute(
+        'SELECT * FROM user WHERE email = ?',
+        [email.trim().toLowerCase()]
+      );
+      await connection.end();
+  
+      if (rows.length === 0) {
+        return res.status(401).json({ message: 'Invalid email or password.' });
+      }
+  
+      const user = rows[0];
+      const isPasswordValid = await bcrypt.compare(password, user.password);
+  
+      if (!isPasswordValid) {
+        return res.status(401).json({ message: 'Invalid email or password.' });
+      }
+  
+      const token = jwt.sign(
+        { email: user.email },
+        process.env.JWT_SECRET,
+        { expiresIn: '1h' }
+      );
+  
+      res.status(200).json({
+        token,
+        full_name: user.full_name
+      });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Error logging in.' });
+      console.error(error);
+      res.status(500).json({ message: 'Error logging in.' });
     }
-});
+  });
 
 // Get Profile
 app.get('/api/me', authenticateToken, async (req, res) => {
