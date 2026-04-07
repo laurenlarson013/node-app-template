@@ -98,8 +98,127 @@ async function authenticateToken(req, res, next) {
 }
 
 //////////////////////////////////////
-// API ROUTES
+// Messaging API Routes 
 //////////////////////////////////////
+app.post('/api/conversations', authenticateToken, async (req, res) => {
+    const { recipientEmail, listingId } = req.body;
+    const userEmail = req.user.email;
+
+    try {
+        const connection = await createConnection();
+        
+        const [existing] = await connection.execute(
+            `SELECT conversation_id FROM conversations 
+             WHERE ((user_one_email = ? AND user_two_email = ?) 
+             OR (user_one_email = ? AND user_two_email = ?))
+             AND listing_id = ?`,
+            [userEmail, recipientEmail, recipientEmail, userEmail, listingId]
+        );
+
+        if (existing.length > 0) {
+            await connection.end();
+            return res.status(200).json({ conversationId: existing[0].conversation_id });
+        }
+
+        const [result] = await connection.execute(
+            `INSERT INTO conversations (user_one_email, user_two_email, listing_id) 
+             VALUES (?, ?, ?)`,
+            [userEmail, recipientEmail, listingId]
+        );
+
+        await connection.end();
+        res.status(201).json({ conversationId: result.insertId });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error starting conversation.' });
+    }
+});
+
+app.get('/api/conversations', authenticateToken, async (req, res) => {
+    try {
+        const connection = await createConnection();
+        const [rows] = await connection.execute(
+            `SELECT * FROM conversations 
+             WHERE user_one_email = ? OR user_two_email = ?
+             ORDER BY updated_at DESC`,
+            [req.user.email, req.user.email]
+        );
+
+        await connection.end();
+        res.status(200).json(rows);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error fetching conversations.' });
+    }
+});
+
+app.get('/api/conversations/:id/messages', authenticateToken, async (req, res) => {
+    try {
+        const connection = await createConnection();
+
+        const [authCheck] = await connection.execute(
+            `SELECT 1 FROM conversations 
+             WHERE conversation_id = ? AND (user_one_email = ? OR user_two_email = ?)`,
+            [req.params.id, req.user.email, req.user.email]
+        );
+
+        if (authCheck.length === 0) {
+            await connection.end();
+            return res.status(403).json({ message: 'Unauthorized' });
+        }
+
+        const [messages] = await connection.execute(
+            'SELECT * FROM messages WHERE conversation_id = ? ORDER BY created_at ASC',
+            [req.params.id]
+        );
+
+        await connection.end();
+        res.status(200).json(messages);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error fetching messages.' });
+    }
+});
+
+app.post('/api/conversations/:id/messages', authenticateToken, async (req, res) => {
+    const { messageText } = req.body;
+
+    try {
+        const connection = await createConnection();
+
+        await connection.execute(
+            `INSERT INTO messages (conversation_id, sender_email, message_text, is_read) 
+             VALUES (?, ?, ?, 0)`,
+            [req.params.id, req.user.email, messageText]
+        );
+
+        await connection.execute(
+            'UPDATE conversations SET updated_at = CURRENT_TIMESTAMP WHERE conversation_id = ?',
+            [req.params.id]
+        );
+
+        await connection.end();
+        res.status(201).json({ message: 'Message sent' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error sending message.' });
+    }
+});
+
+app.put('/api/messages/:id/read', authenticateToken, async (req, res) => {
+    try {
+        const connection = await createConnection();
+        await connection.execute(
+            'UPDATE messages SET is_read = 1 WHERE message_id = ?',
+            [req.params.id]
+        );
+        await connection.end();
+        res.status(200).json({ message: 'Success' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error' });
+    }
+});
 
 // Create Listing
 app.post('/api/listings', authenticateToken, async (req, res) => {
