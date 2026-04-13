@@ -1,10 +1,12 @@
 let allListings = [];
+let activeListing = null;
 
 const DEFAULT_IMAGE = "/images/default.jpg";
 
 document.addEventListener("DOMContentLoaded", () => {
   setupEventListeners();
   setupModalEvents();
+  setupMessageSeller();
   loadListings();
 });
 
@@ -32,7 +34,8 @@ function setupEventListeners() {
 
   if (logoutBtn) {
     logoutBtn.addEventListener("click", () => {
-      localStorage.removeItem("token");
+      localStorage.removeItem("jwtToken");
+      localStorage.removeItem("activeConversationId");
       window.location.href = "/";
     });
   }
@@ -202,9 +205,9 @@ function renderListings(listings) {
     });
 
     card.addEventListener("click", () => {
-        console.log("opening modal", listing);
-        openListingModal(listing);
-      });
+      console.log("opening modal", listing);
+      openListingModal(listing);
+    });
 
     container.appendChild(card);
   });
@@ -255,6 +258,8 @@ function escapeHtml(value) {
 }
 
 function openListingModal(listing) {
+  activeListing = listing;
+
   const modal = document.getElementById("listingModal");
   if (!modal) return;
 
@@ -314,45 +319,66 @@ function setupModalEvents() {
   });
 }
 
-async function loadDashboardListings() {
-    try {
-        const res = await fetch('/api/listings');
-        const data = await res.json();
+function setupMessageSeller() {
+  const messageBtn = document.getElementById("messageSellerBtn");
+  if (!messageBtn) return;
 
-        if (!data.success) {
-            console.error("Failed to load listings");
-            return;
-        }
-
-        const listings = data.listings;
-
-        const container = document.getElementById('listingsContainer');
-        container.innerHTML = "";
-
-        listings.forEach(listing => {
-            const card = document.createElement('div');
-            card.classList.add('listing-card');
-
-            const photos = JSON.parse(listing.photos || "[]");
-            const firstPhoto = photos[0] || "/img/default.jpg";
-
-            card.innerHTML = `
-                <img src="${firstPhoto}" class="listing-photo">
-                <h3>${listing.title}</h3>
-                <p>$${listing.price}</p>
-
-                <div class="seller-info">
-                    <img src="${listing.seller_photo}" class="seller-photo">
-                    <span>${listing.seller_name} — ${listing.seller_university}</span>
-                </div>
-            `;
-
-            container.appendChild(card);
-        });
-
-    } catch (err) {
-        console.error("Error loading dashboard listings:", err);
+  messageBtn.addEventListener("click", async () => {
+    if (!activeListing) {
+      alert("No listing selected.");
+      return;
     }
-}
 
-loadDashboardListings();
+    const token = localStorage.getItem("jwtToken");
+    if (!token) {
+      window.location.href = "/";
+      return;
+    }
+
+    try {
+      const recipientEmail =
+        activeListing.user_email ||
+        activeListing.seller_email ||
+        activeListing.email;
+
+      if (!recipientEmail) {
+        throw new Error("Seller email not found for this listing.");
+      }
+
+      const response = await fetch("/api/conversations", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": token
+        },
+        body: JSON.stringify({
+          recipientEmail,
+          listingId: activeListing.listing_id
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to start conversation.");
+      }
+
+      const conversationId =
+        data.conversation_id ||
+        data.conversationId ||
+        data.id;
+
+      if (!conversationId) {
+        throw new Error("Conversation created, but no conversation ID returned.");
+      }
+
+      localStorage.setItem("activeConversationId", conversationId);
+      localStorage.setItem("messageListingTitle", activeListing.title || "");
+
+      window.location.href = "/messages";
+    } catch (error) {
+      console.error("Message Seller error:", error);
+      alert(error.message || "Could not start conversation.");
+    }
+  });
+}

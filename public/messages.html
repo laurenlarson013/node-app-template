@@ -6,16 +6,17 @@
     <link rel="stylesheet" href="/css/styles.css" />
     <script defer src="/js/authGuard.js"></script>
     <script defer src="/js/logout.js"></script>
+    <script defer src="/js/messages.js"></script>
   </head>
   <body>
     <header>
       <nav class="nav">
         <a href="/dashboard">Dashboard</a>
-        <a href="/browse.html">Browse</a>
-        <a href="/listing-new.html">New Listing</a>
-        <a href="/my-listings.html">My Listings</a>
-        <a href="/messages.html">Messages</a>
-        <a href="/profile.html">Profile</a>
+        <a href="/browse">Browse</a>
+        <a href="/listing-new">New Listing</a>
+        <a href="/my-listings">My Listings</a>
+        <a href="/messages">Messages</a>
+        <a href="/profile">Profile</a>
         <span class="spacer"></span>
         <button class="btn" id="logoutBtn">Logout</button>
       </nav>
@@ -26,20 +27,28 @@
 
       <section class="card" style="margin-top:14px;">
         <div class="grid">
+          
+          <!-- LEFT: Inbox -->
           <div class="col-4">
             <h2 class="h2">Inbox</h2>
-            <div id="inboxList" class="card" style="margin-top:10px; min-height:260px;"></div>
+            <div id="inboxList" class="card" style="margin-top:10px; min-height:260px;">
+              <!-- conversations will go here later -->
+            </div>
           </div>
 
+          <!-- RIGHT: Conversation -->
           <div class="col-8">
             <h2 class="h2">Conversation</h2>
-            <div id="conversationView" class="card" style="margin-top:10px; min-height:260px;"></div>
+            <div id="conversationView" class="card" style="margin-top:10px; min-height:260px;">
+              <!-- messages will load here -->
+            </div>
 
             <form id="sendMessageForm" style="margin-top:10px; display:flex; gap:10px;">
-              <input id="messageInput" class="input" />
+              <input id="messageInput" class="input" placeholder="Type a message..." />
               <button class="btn" type="submit">Send</button>
             </form>
           </div>
+
         </div>
       </section>
     </main>
