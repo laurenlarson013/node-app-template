@@ -450,6 +450,7 @@ app.get('/api/listings', async (req, res) => {
                 l.pickup_details,
                 l.created_at,
                 l.status,
+                u.email AS seller_email,
                 u.full_name AS seller_name,
                 u.profile_photo_url AS seller_photo,
                 u.campus AS seller_university

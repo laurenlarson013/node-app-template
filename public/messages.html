@@ -1,56 +1,286 @@
 <!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <title>Messages</title>
-    <link rel="stylesheet" href="/css/styles.css" />
-    <script defer src="/js/authGuard.js"></script>
-    <script defer src="/js/logout.js"></script>
-    <script defer src="/js/messages.js"></script>
-  </head>
-  <body>
-    <header>
-      <nav class="nav">
-        <a href="/dashboard">Dashboard</a>
-        <a href="/browse">Browse</a>
-        <a href="/listing-new">New Listing</a>
-        <a href="/my-listings">My Listings</a>
-        <a href="/messages">Messages</a>
-        <a href="/profile">Profile</a>
-        <span class="spacer"></span>
-        <button class="btn" id="logoutBtn">Logout</button>
-      </nav>
-    </header>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Messages</title>
 
-    <main class="container">
-      <h1 class="h1">Messages</h1>
+  <link rel="stylesheet" href="/css/styles.css" />
+  <script defer src="/js/authGuard.js"></script>
+  <script defer src="/js/logout.js"></script>
+  <script defer src="/js/messages.js"></script>
 
-      <section class="card" style="margin-top:14px;">
-        <div class="grid">
-          
-          <!-- LEFT: Inbox -->
-          <div class="col-4">
-            <h2 class="h2">Inbox</h2>
-            <div id="inboxList" class="card" style="margin-top:10px; min-height:260px;">
-              <!-- conversations will go here later -->
-            </div>
-          </div>
+  <style>
+    .messages-shell {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 16px;
+      margin-top: 14px;
+      min-height: 68vh;
+    }
 
-          <!-- RIGHT: Conversation -->
-          <div class="col-8">
-            <h2 class="h2">Conversation</h2>
-            <div id="conversationView" class="card" style="margin-top:10px; min-height:260px;">
-              <!-- messages will load here -->
-            </div>
+    .messages-panel {
+      padding: 0;
+      overflow: hidden;
+    }
 
-            <form id="sendMessageForm" style="margin-top:10px; display:flex; gap:10px;">
-              <input id="messageInput" class="input" placeholder="Type a message..." />
-              <button class="btn" type="submit">Send</button>
-            </form>
-          </div>
+    .messages-sidebar-header,
+    .messages-main-header {
+      padding: 18px 18px 14px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.02);
+    }
 
+    .messages-sidebar-header .h2,
+    .messages-main-header .h2 {
+      margin: 0;
+    }
+
+    .messages-sidebar-status,
+    .messages-empty,
+    .messages-error {
+      padding: 18px;
+      color: var(--muted);
+    }
+
+    .conversation-list {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .conversation-item {
+      width: 100%;
+      border: 0;
+      border-bottom: 1px solid var(--border);
+      background: transparent;
+      color: var(--text);
+      text-align: left;
+      padding: 14px 16px;
+      cursor: pointer;
+      transition: background 0.15s ease, transform 0.15s ease;
+    }
+
+    .conversation-item:hover {
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .conversation-item.active {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .conversation-topline,
+    .conversation-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .conversation-name {
+      font-weight: 700;
+      margin: 0;
+    }
+
+    .conversation-email {
+      color: var(--muted);
+      font-size: 0.92rem;
+      margin-top: 3px;
+    }
+
+    .conversation-preview {
+      color: var(--muted);
+      font-size: 0.95rem;
+      margin-top: 8px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .conversation-date {
+      color: var(--muted);
+      font-size: 0.8rem;
+      white-space: nowrap;
+    }
+
+    .unread-badge {
+      min-width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: var(--primary);
+      display: inline-block;
+      flex-shrink: 0;
+    }
+
+    .messages-main {
+      display: flex;
+      flex-direction: column;
+      min-height: 68vh;
+    }
+
+    .messages-thread-info {
+      margin-top: 8px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .listing-pill {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 6px 10px;
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text);
+    }
+
+    .messages-thread {
+      flex: 1;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      overflow-y: auto;
+      min-height: 320px;
+    }
+
+    .message-row {
+      display: flex;
+    }
+
+    .message-row.sent {
+      justify-content: flex-end;
+    }
+
+    .message-row.received {
+      justify-content: flex-start;
+    }
+
+    .message-bubble {
+      max-width: 72%;
+      padding: 12px 14px;
+      border-radius: 16px;
+      line-height: 1.4;
+      box-shadow: var(--shadow);
+      word-break: break-word;
+    }
+
+    .message-row.sent .message-bubble {
+      background: var(--primary);
+      color: #fff;
+      border-bottom-right-radius: 6px;
+    }
+
+    .message-row.received .message-bubble {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-bottom-left-radius: 6px;
+    }
+
+    .message-meta {
+      margin-top: 6px;
+      font-size: 0.78rem;
+      opacity: 0.85;
+    }
+
+    .messages-compose {
+      border-top: 1px solid var(--border);
+      padding: 14px 18px 18px;
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .messages-compose-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .messages-compose .input {
+      flex: 1;
+    }
+
+    .messages-compose-note {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    @media (max-width: 900px) {
+      .messages-shell {
+        grid-template-columns: 1fr;
+      }
+
+      .messages-panel {
+        min-height: auto;
+      }
+
+      .messages-main {
+        min-height: 60vh;
+      }
+
+      .message-bubble {
+        max-width: 86%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <nav class="nav">
+      <a href="/dashboard">Dashboard</a>
+      <a href="/browse">Browse</a>
+      <a href="/listing-new">New Listing</a>
+      <a href="/my-listings">My Listings</a>
+      <a href="/messages">Messages</a>
+      <a href="/profile">Profile</a>
+      <span class="spacer"></span>
+      <button class="btn" id="logoutBtn">Logout</button>
+    </nav>
+  </header>
+
+  <main class="container">
+    <h1 class="h1">Messages</h1>
+    <p class="kicker">Keep track of conversations with buyers and sellers.</p>
+
+    <section class="messages-shell">
+      <aside class="card messages-panel">
+        <div class="messages-sidebar-header">
+          <h2 class="h2">Inbox</h2>
         </div>
+
+        <div id="inboxStatus" class="messages-sidebar-status">Loading conversations...</div>
+        <div id="inboxList" class="conversation-list"></div>
+      </aside>
+
+      <section class="card messages-panel messages-main">
+        <div class="messages-main-header">
+          <h2 class="h2" id="conversationHeading">Conversation</h2>
+          <div id="conversationMeta" class="messages-thread-info"></div>
+        </div>
+
+        <div id="conversationView" class="messages-thread">
+          <div class="messages-empty">No conversation selected.</div>
+        </div>
+
+        <form id="sendMessageForm" class="messages-compose">
+          <div class="messages-compose-row">
+            <input
+              id="messageInput"
+              class="input"
+              type="text"
+              placeholder="Type a message..."
+              autocomplete="off"
+              disabled
+            />
+            <button class="btn" type="submit" id="sendMessageBtn" disabled>Send</button>
+          </div>
+          <div id="composeStatus" class="messages-compose-note">Choose a conversation to start chatting.</div>
+        </form>
       </section>
-    </main>
-  </body>
+    </section>
+  </main>
+</body>
 </html>
