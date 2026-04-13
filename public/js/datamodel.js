@@ -129,7 +129,7 @@ const DataModel = (function () {
                 return await request(`/api/conversations/${conversationId}/messages`, {
                     method: "POST",
                     body: JSON.stringify({
-                        text
+                        messageText: text
                     })
                 });
             } catch (error) {
@@ -137,7 +137,7 @@ const DataModel = (function () {
                 throw error;
             }
         },
-
+        
         // Mark a message as read
         markMessageRead: async function (messageId) {
             try {

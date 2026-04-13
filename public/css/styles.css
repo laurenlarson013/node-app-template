@@ -762,3 +762,57 @@ body.modal-open {
   margin-top: 8px;
   padding-bottom: 4px;
 }
+.message-row {
+  display: flex;
+  margin: 10px 0;
+}
+
+.message-row.sent {
+  justify-content: flex-end;
+}
+
+.message-row.received {
+  justify-content: flex-start;
+}
+
+.message-bubble {
+  max-width: 70%;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid #ddd;
+  word-break: break-word;
+  color: #222;
+  background: #f3f3f3;
+}
+
+.message-row.sent .message-bubble {
+  background: #8c1d40;
+  color: #fff;
+  border-color: #8c1d40;
+}
+
+.message-row.received .message-bubble {
+  background: #f8f8f8;
+  color: #222;
+}
+
+.message-meta {
+  font-size: 12px;
+  margin-top: 6px;
+  opacity: 0.8;
+  color: black;
+}
+.message-row.received .message-bubble,
+.message-row.received .message-bubble * {
+  color: #222 !important;
+}
+
+.message-row.sent .message-bubble,
+.message-row.sent .message-bubble * {
+  color: #000 !important;
+}
+
+.message-bubble,
+.message-bubble * {
+  color: #000 !important;
+}
