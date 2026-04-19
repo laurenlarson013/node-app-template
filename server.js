@@ -136,7 +136,7 @@ app.post('/api/conversations', authenticateToken, async (req, res) => {
 
 app.get('/api/conversations', authenticateToken, async (req, res) => {
     try {
-        const connection = await createConnection();
+        const connection = await createConnection();ç
         const [rows] = await connection.execute(
             `SELECT * FROM conversations 
              WHERE user_one_email = ? OR user_two_email = ?
@@ -217,6 +217,165 @@ app.put('/api/messages/:id/read', authenticateToken, async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Error' });
+    }
+});
+
+// 1. Create a new trade offer
+app.post('/api/trade-offers', authenticateToken, async (req, res) => {
+    const { conversation_id, requested_listing_id, offered_listing_id, message_text } = req.body;
+    const userEmail = req.user.email;
+
+    try {
+        const connection = await createConnection();
+
+        // Verifies that the offered listing belongs to current user
+        const [offeredRows] = await connection.execute(
+            'SELECT user_email, status FROM listings WHERE listing_id = ?',
+            [offered_listing_id]
+        );
+
+        if (offeredRows.length === 0 || offeredRows[0].user_email !== userEmail) {
+            await connection.end();
+            return res.status(403).json({ message: "You don't own the offered item." });
+        }
+
+        // Verifies that the requested listing belongs to someone else
+        const [requestedRows] = await connection.execute(
+            'SELECT user_email, status FROM listings WHERE listing_id = ?',
+            [requested_listing_id]
+        );
+
+        if (requestedRows.length === 0 || requestedRows[0].user_email === userEmail) {
+            await connection.end();
+            return res.status(400).json({ message: "Invalid requested listing." });
+        }
+
+        // Verifies that both listings are still active
+        if (offeredRows[0].status !== 'Active' || requestedRows[0].status !== 'Active') {
+            await connection.end();
+            return res.status(400).json({ message: "One or both listings are no longer active." });
+        }
+
+        // Prevent duplicate pending offers
+        const [duplicates] = await connection.execute(
+            'SELECT trade_offer_id FROM trade_offers WHERE offered_listing_id = ? AND requested_listing_id = ? AND status = "Pending"',
+            [offered_listing_id, requested_listing_id]
+        );
+        if (duplicates.length > 0) {
+            await connection.end();
+            return res.status(409).json({ message: "A pending offer already exists for these items." });
+        }
+
+        // Insert trade offer
+        const [result] = await connection.execute(
+            `INSERT INTO trade_offers 
+            (conversation_id, offered_by_email, requested_listing_id, offered_listing_id, status, message_text) 
+            VALUES (?, ?, ?, ?, 'Pending', ?)`,
+            [conversation_id, userEmail, requested_listing_id, offered_listing_id, message_text]
+        );
+
+        await connection.end();
+        res.status(201).json({ message: 'Trade offer sent!', trade_offer_id: result.insertId });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error with creating this trade offer.' });
+    }
+});
+
+// 2. Fetch all trade offers for a specific conversation
+app.get('/api/conversations/:id/trade-offers', authenticateToken, async (req, res) => {
+    try {
+        const connection = await createConnection();
+        const [authCheck] = await connection.execute(
+            'SELECT 1 FROM conversations WHERE conversation_id = ? AND (user_one_email = ? OR user_two_email = ?)',
+            [req.params.id, req.user.email, req.user.email]
+        );
+
+        if (authCheck.length === 0) {
+            await connection.end();
+            return res.status(403).json({ message: 'Unauthorized' });
+        }
+
+        const [offers] = await connection.execute(
+            'SELECT * FROM trade_offers WHERE conversation_id = ? ORDER BY created_at DESC',
+            [req.params.id]
+        );
+
+        await connection.end();
+        res.status(200).json(offers);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error fetching trade offers.' });
+    }
+});
+
+// 3. Respond to a trade offer (Accept or Decline)
+app.put('/api/trade-offers/:id/respond', authenticateToken, async (req, res) => {
+    const { status } = req.body; 
+    const userEmail = req.user.email;
+
+    if (!['Accepted', 'Declined'].includes(status)) {
+        return res.status(400).json({ message: "Status must be 'Accepted' or 'Declined'." });
+    }
+
+    try {
+        const connection = await createConnection();
+
+        // Verify that the user is the one who receive the offer
+        const [offer] = await connection.execute(
+            `SELECT t.*, l.user_email as owner_email 
+             FROM trade_offers t
+             JOIN listings l ON t.requested_listing_id = l.listing_id
+             WHERE t.trade_offer_id = ?`,
+            [req.params.id]
+        );
+
+        if (offer.length === 0 || offer[0].owner_email !== userEmail) {
+            await connection.end();
+            return res.status(403).json({ message: "You are not authorized to respond to this offer." });
+        }
+
+        await connection.execute(
+            'UPDATE trade_offers SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE trade_offer_id = ?',
+            [status, req.params.id]
+        );
+
+        // If accepted, optionally mark listings as "Traded" (discuss with Person 1)
+        if (status === 'Accepted') {
+            await connection.execute(
+                'UPDATE listings SET status = "Sold" WHERE listing_id IN (?, ?)',
+                [offer[0].requested_listing_id, offer[0].offered_listing_id]
+            );
+        }
+
+        await connection.end();
+        res.status(200).json({ message: `Trade offer ${status.toLowerCase()}.` });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error responding to trade offer.' });
+    }
+});
+
+// 4. Cancel a pending trade offer
+app.put('/api/trade-offers/:id/cancel', authenticateToken, async (req, res) => {
+    try {
+        const connection = await createConnection();
+
+        const [result] = await connection.execute(
+            'UPDATE trade_offers SET status = "Cancelled", updated_at = CURRENT_TIMESTAMP WHERE trade_offer_id = ? AND offered_by_email = ? AND status = "Pending"',
+            [req.params.id, req.user.email]
+        );
+
+        await connection.end();
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: "Offer not found, already processed, or unauthorized." });
+        }
+
+        res.status(200).json({ message: 'Trade offer cancelled.' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error cancelling trade offer.' });
     }
 });
 
