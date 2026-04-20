@@ -13,7 +13,6 @@ form.addEventListener('submit', async (event) => {
     const description = document.getElementById('description').value.trim();
     const price = document.getElementById('price').value.trim();
     const photos = document.getElementById('photos').value.trim();
-    const university = document.getElementById('university').value.trim();
     const category = document.getElementById('category').value;
     const trade_option = document.getElementById('trade_option').value;
     const item_condition = document.getElementById('item_condition').value;
@@ -31,7 +30,6 @@ form.addEventListener('submit', async (event) => {
                 description,
                 price,
                 photos,
-                university,
                 category,
                 trade_option,
                 item_condition,

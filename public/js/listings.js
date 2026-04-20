@@ -1,5 +1,7 @@
 let allListings = [];
 let activeListing = null;
+let myListingsCache = [];
+let activeConversationIdForTrade = null;
 
 const DEFAULT_IMAGE = "/images/default.jpg";
 
@@ -7,7 +9,8 @@ document.addEventListener("DOMContentLoaded", () => {
   setupEventListeners();
   setupModalEvents();
   setupMessageSeller();
-  setupOfferTrade();
+  setupTradeButton();
+  setupTradeModalEvents();
   loadListings();
 });
 
@@ -38,10 +41,21 @@ function setupEventListeners() {
       localStorage.removeItem("jwtToken");
       localStorage.removeItem("activeConversationId");
       localStorage.removeItem("messageListingTitle");
-      localStorage.removeItem("tradeListingId");
-      localStorage.removeItem("tradeListingTitle");
       window.location.href = "/";
     });
+  }
+}
+
+function getCurrentUserEmail() {
+  const token = localStorage.getItem("jwtToken");
+  if (!token) return "";
+
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    return (payload.email || payload.user_email || "").toLowerCase();
+  } catch (error) {
+    console.error("Could not read user email from token:", error);
+    return "";
   }
 }
 
@@ -68,7 +82,19 @@ async function loadListings() {
       throw new Error("Invalid listings response format.");
     }
 
-    allListings = data;
+    const currentUserEmail = getCurrentUserEmail();
+
+    allListings = data.filter((listing) => {
+      const listingOwnerEmail = (
+        listing.user_email ||
+        listing.seller_email ||
+        listing.email ||
+        ""
+      ).toLowerCase();
+
+      return listingOwnerEmail !== currentUserEmail;
+    });
+
     renderListings(allListings);
   } catch (error) {
     console.error("Error loading listings:", error);
@@ -78,21 +104,17 @@ async function loadListings() {
 }
 
 function applyFilters() {
-  const searchValue =
-    document.getElementById("searchInput")?.value.trim().toLowerCase() || "";
-  const categoryValue =
-    document.getElementById("categoryFilter")?.value || "All";
+  const searchValue = document.getElementById("searchInput")?.value.trim().toLowerCase() || "";
+  const categoryValue = document.getElementById("categoryFilter")?.value || "All";
   const sortValue = document.getElementById("sortFilter")?.value || "newest";
-  const maxPriceValue =
-    document.getElementById("priceFilter")?.value.trim() || "";
+  const maxPriceValue = document.getElementById("priceFilter")?.value.trim() || "";
 
   let filtered = [...allListings];
 
   if (searchValue) {
     filtered = filtered.filter((listing) => {
       const title = (listing.title || "").toLowerCase();
-      const description =
-        (listing.description || listing.listing_description || "").toLowerCase();
+      const description = (listing.description || "").toLowerCase();
       const category = (listing.category || "").toLowerCase();
       const university = (listing.university || "").toLowerCase();
 
@@ -106,9 +128,7 @@ function applyFilters() {
   }
 
   if (categoryValue !== "All") {
-    filtered = filtered.filter(
-      (listing) => (listing.category || "") === categoryValue
-    );
+    filtered = filtered.filter((listing) => (listing.category || "") === categoryValue);
   }
 
   if (maxPriceValue) {
@@ -121,9 +141,7 @@ function applyFilters() {
   } else if (sortValue === "price-high") {
     filtered.sort((a, b) => Number(b.price) - Number(a.price));
   } else {
-    filtered.sort(
-      (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)
-    );
+    filtered.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
   }
 
   renderListings(filtered);
@@ -162,58 +180,42 @@ function renderListings(listings) {
   listings.forEach((listing) => {
     const card = document.createElement("article");
     card.className = "listing-card";
-    card.dataset.id = listing.listing_id || listing.id || "";
+    card.dataset.id = listing.listing_id;
 
     const imageSrc = getListingImage(listing.photos);
     const price = formatPrice(listing.price);
     const category = listing.category || "Listing";
     const title = listing.title || "Untitled Listing";
-    const description =
-      listing.description ||
-      listing.listing_description ||
-      "No description provided.";
+    const description = listing.description || "No description provided.";
     const sellerName = listing.seller_name || "Unknown seller";
-    const sellerUniversity =
-      listing.seller_university || listing.university || "";
-    const tradeOption = listing.trade_option || "For Sale";
+    const sellerUniversity = listing.seller_university || listing.university || "";
+    const tradeOption = listing.trade_option || "Sell";
 
     card.innerHTML = `
-      <div class="listing-image-wrap">
-        <img
-          src="${imageSrc}"
-          alt="${escapeHtml(title)}"
-          class="listing-image"
-        />
-      </div>
-
+      <img class="listing-thumb" src="${escapeHtml(imageSrc)}" alt="${escapeHtml(title)}" />
       <div class="listing-card-body">
-        <div class="listing-top-row">
-          <span class="listing-category">${escapeHtml(category)}</span>
-          <span class="listing-trade">${escapeHtml(tradeOption)}</span>
+        <div class="listing-badges">
+          <span class="pill">${escapeHtml(category)}</span>
+          <span class="pill">${escapeHtml(tradeOption)}</span>
         </div>
-
         <h3 class="listing-title">${escapeHtml(title)}</h3>
-        <p class="listing-price">${price}</p>
+        <div class="listing-price">${price}</div>
         <p class="listing-description">${escapeHtml(description)}</p>
-
-        <div class="listing-meta">
-          <span>${escapeHtml(sellerName)}</span>
-          ${
-            sellerUniversity
-              ? `<span>${escapeHtml(sellerUniversity)}</span>`
-              : ""
-          }
+        <div class="listing-seller">
+          <strong>${escapeHtml(sellerName)}</strong>
+          ${sellerUniversity ? `<span>${escapeHtml(sellerUniversity)}</span>` : ""}
         </div>
       </div>
     `;
 
     const img = card.querySelector("img");
-    img.addEventListener("error", () => {
-      img.src = DEFAULT_IMAGE;
-    });
+    if (img) {
+      img.addEventListener("error", () => {
+        img.src = DEFAULT_IMAGE;
+      });
+    }
 
     card.addEventListener("click", () => {
-      console.log("opening modal", listing);
       openListingModal(listing);
     });
 
@@ -265,6 +267,11 @@ function escapeHtml(value) {
   return div.innerHTML;
 }
 
+function listingAllowsTrade(listing) {
+  const value = (listing?.trade_option || "").toLowerCase();
+  return value.includes("trade");
+}
+
 function openListingModal(listing) {
   activeListing = listing;
 
@@ -281,35 +288,30 @@ function openListingModal(listing) {
   const university = document.getElementById("modalUniversity");
   const pickup = document.getElementById("modalPickup");
   const seller = document.getElementById("modalSeller");
-  const offerTradeBtn = document.querySelector(".modal-action-btn");
+  const tradeBtn = document.getElementById("offerTradeBtn");
 
   const imageSrc = getListingImage(listing.photos);
 
-  image.src = imageSrc;
-  image.alt = listing.title || "Listing image";
-  image.onerror = () => {
-    image.src = DEFAULT_IMAGE;
-  };
+  if (image) {
+    image.src = imageSrc;
+    image.alt = listing.title || "Listing image";
+    image.onerror = () => {
+      image.src = DEFAULT_IMAGE;
+    };
+  }
 
-  category.textContent = listing.category || "Listing";
-  trade.textContent = listing.trade_option || "For Sale";
-  title.textContent = listing.title || "Untitled Listing";
-  price.textContent = formatPrice(listing.price);
-  description.textContent =
-    listing.description || listing.listing_description || "No description provided.";
-  condition.textContent = listing.item_condition || "Not listed";
-  university.textContent =
-    listing.seller_university || listing.university || "Not listed";
-  pickup.textContent = listing.pickup_details || "Not listed";
-  seller.textContent = listing.seller_name || "Unknown seller";
+  if (category) category.textContent = listing.category || "Listing";
+  if (trade) trade.textContent = listing.trade_option || "For Sale";
+  if (title) title.textContent = listing.title || "Untitled Listing";
+  if (price) price.textContent = formatPrice(listing.price);
+  if (description) description.textContent = listing.description || "No description provided.";
+  if (condition) condition.textContent = listing.item_condition || "Not listed";
+  if (university) university.textContent = listing.seller_university || listing.university || "Not listed";
+  if (pickup) pickup.textContent = listing.pickup_details || "Not listed";
+  if (seller) seller.textContent = listing.seller_name || "Unknown seller";
 
-  if (offerTradeBtn) {
-    const tradeOptionValue = (listing.trade_option || "").toLowerCase();
-    const allowsTrade =
-      tradeOptionValue.includes("trade") || tradeOptionValue === "open to trade";
-
-    offerTradeBtn.style.display = allowsTrade ? "inline-block" : "none";
-    offerTradeBtn.disabled = !allowsTrade;
+  if (tradeBtn) {
+    tradeBtn.style.display = listingAllowsTrade(listing) ? "inline-flex" : "none";
   }
 
   modal.classList.remove("hidden");
@@ -334,6 +336,7 @@ function setupModalEvents() {
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
       closeListingModal();
+      closeTradeModal();
     }
   });
 }
@@ -356,9 +359,7 @@ function setupMessageSeller() {
 
     try {
       const recipientEmail =
-        activeListing.user_email ||
-        activeListing.seller_email ||
-        activeListing.email;
+        activeListing.user_email || activeListing.seller_email || activeListing.email;
 
       if (!recipientEmail) {
         throw new Error("Seller email not found for this listing.");
@@ -368,11 +369,11 @@ function setupMessageSeller() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": token
+          Authorization: token
         },
         body: JSON.stringify({
           recipientEmail,
-          listingId: activeListing.listing_id || activeListing.id
+          listingId: activeListing.listing_id
         })
       });
 
@@ -382,10 +383,7 @@ function setupMessageSeller() {
         throw new Error(data.message || "Failed to start conversation.");
       }
 
-      const conversationId =
-        data.conversation_id ||
-        data.conversationId ||
-        data.id;
+      const conversationId = data.conversation_id || data.conversationId || data.id;
 
       if (!conversationId) {
         throw new Error("Conversation created, but no conversation ID returned.");
@@ -393,7 +391,6 @@ function setupMessageSeller() {
 
       localStorage.setItem("activeConversationId", conversationId);
       localStorage.setItem("messageListingTitle", activeListing.title || "");
-
       window.location.href = "/messages";
     } catch (error) {
       console.error("Message Seller error:", error);
@@ -402,13 +399,18 @@ function setupMessageSeller() {
   });
 }
 
-function setupOfferTrade() {
-  const offerTradeBtn = document.querySelector(".modal-action-btn");
-  if (!offerTradeBtn) return;
+function setupTradeButton() {
+  const tradeBtn = document.getElementById("offerTradeBtn");
+  if (!tradeBtn) return;
 
-  offerTradeBtn.addEventListener("click", async () => {
+  tradeBtn.addEventListener("click", async () => {
     if (!activeListing) {
       alert("No listing selected.");
+      return;
+    }
+
+    if (!listingAllowsTrade(activeListing)) {
+      alert("This listing is not accepting trades.");
       return;
     }
 
@@ -420,49 +422,176 @@ function setupOfferTrade() {
 
     try {
       const recipientEmail =
-        activeListing.user_email ||
-        activeListing.seller_email ||
-        activeListing.email;
+        activeListing.user_email || activeListing.seller_email || activeListing.email;
 
       if (!recipientEmail) {
-        throw new Error("Seller email not found for this listing.");
+        throw new Error("Seller email not found.");
       }
 
-      const response = await fetch("/api/conversations", {
+      const convoRes = await fetch("/api/conversations", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": token
+          Authorization: token
         },
         body: JSON.stringify({
           recipientEmail,
-          listingId: activeListing.listing_id || activeListing.id
+          listingId: activeListing.listing_id
         })
       });
 
-      const data = await response.json();
+      const convoData = await convoRes.json().catch(() => ({}));
 
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to start trade conversation.");
+      if (!convoRes.ok) {
+        throw new Error(convoData.message || "Could not start trade conversation.");
       }
 
-      const conversationId =
-        data.conversation_id ||
-        data.conversationId ||
-        data.id;
+      activeConversationIdForTrade =
+        convoData.conversation_id || convoData.conversationId || convoData.id;
 
-      if (!conversationId) {
-        throw new Error("Conversation created, but no conversation ID returned.");
-      }
-
-      localStorage.setItem("activeConversationId", conversationId);
-      localStorage.setItem("tradeListingId", activeListing.listing_id || activeListing.id);
-      localStorage.setItem("tradeListingTitle", activeListing.title || "");
-
-      window.location.href = "/messages";
+      await openTradeModal();
     } catch (error) {
-      console.error("Offer Trade error:", error);
-      alert(error.message || "Could not start trade flow.");
+      console.error("Trade setup error:", error);
+      alert(error.message || "Could not open trade offer.");
     }
   });
+}
+
+async function openTradeModal() {
+  const modal = document.getElementById("tradeModal");
+  const select = document.getElementById("tradeListingSelect");
+  const status = document.getElementById("tradeStatus");
+  const summary = document.getElementById("tradeTargetSummary");
+  const token = localStorage.getItem("jwtToken");
+
+  if (!modal || !select || !status || !summary) return;
+
+  summary.textContent = `Requested item: ${activeListing?.title || "Listing"}`;
+  status.textContent = "Loading your listings...";
+  status.style.display = "block";
+  select.innerHTML = `<option value="">Select a listing</option>`;
+
+  modal.classList.remove("hidden");
+  document.body.classList.add("modal-open");
+
+  try {
+    const res = await fetch("/api/my-listings", {
+      headers: { Authorization: token }
+    });
+
+    const data = await res.json().catch(() => []);
+
+    if (!res.ok) {
+      throw new Error(data.message || "Could not load your listings.");
+    }
+
+    myListingsCache = Array.isArray(data) ? data : [];
+    console.log("my listings returned:", myListingsCache);
+
+    const eligibleListings = myListingsCache.filter((listing) => {
+      const statusValue = String(listing.status || "").toLowerCase();
+
+      return (
+        String(listing.listing_id) !== String(activeListing?.listing_id) &&
+        statusValue !== "sold"
+      );
+    });
+
+    console.log("eligible trade listings:", eligibleListings);
+
+    if (!eligibleListings.length) {
+      status.textContent = "You do not have any other available listings to trade.";
+      return;
+    }
+
+    eligibleListings.forEach((listing) => {
+      const option = document.createElement("option");
+      option.value = listing.listing_id;
+      option.textContent = `${listing.title || "Untitled Listing"} — ${formatPrice(listing.price)}`;
+      select.appendChild(option);
+    });
+
+    status.style.display = "none";
+  } catch (error) {
+    console.error("trade modal error:", error);
+    status.textContent = error.message || "Could not load your listings.";
+  }
+}
+
+function closeTradeModal() {
+  const modal = document.getElementById("tradeModal");
+  const form = document.getElementById("tradeOfferForm");
+  const status = document.getElementById("tradeStatus");
+
+  modal?.classList.add("hidden");
+  document.body.classList.remove("modal-open");
+  form?.reset();
+
+  if (status) {
+    status.textContent = "";
+    status.style.display = "none";
+  }
+}
+
+function setupTradeModalEvents() {
+  document.getElementById("tradeModalClose")?.addEventListener("click", closeTradeModal);
+  document.getElementById("tradeModalBackdrop")?.addEventListener("click", closeTradeModal);
+  document.getElementById("cancelTradeModalBtn")?.addEventListener("click", closeTradeModal);
+  document.getElementById("tradeOfferForm")?.addEventListener("submit", submitTradeOffer);
+}
+
+async function submitTradeOffer(event) {
+  event.preventDefault();
+
+  const token = localStorage.getItem("jwtToken");
+  const select = document.getElementById("tradeListingSelect");
+  const messageInput = document.getElementById("tradeMessageInput");
+  const status = document.getElementById("tradeStatus");
+  const submitBtn = document.getElementById("submitTradeOfferBtn");
+
+  const offeredListingId = select?.value;
+  const messageText = messageInput?.value.trim() || "";
+
+  if (!offeredListingId) {
+    status.textContent = "Please choose one of your listings.";
+    status.style.display = "block";
+    return;
+  }
+
+  submitBtn.disabled = true;
+  status.textContent = "Sending trade offer...";
+  status.style.display = "block";
+
+  try {
+    const res = await fetch("/api/trade-offers", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: token
+      },
+      body: JSON.stringify({
+        conversation_id: activeConversationIdForTrade,
+        requested_listing_id: activeListing.listing_id,
+        offered_listing_id: offeredListingId,
+        message_text: messageText
+      })
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      throw new Error(data.message || "Could not send trade offer.");
+    }
+
+    localStorage.setItem("activeConversationId", activeConversationIdForTrade);
+    localStorage.setItem("messageListingTitle", activeListing.title || "");
+    closeTradeModal();
+    closeListingModal();
+    window.location.href = "/messages";
+  } catch (error) {
+    console.error(error);
+    status.textContent = error.message || "Could not send trade offer.";
+  } finally {
+    submitBtn.disabled = false;
+  }
 }

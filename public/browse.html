@@ -1,8 +1,8 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Browse Listings</title>
   <link rel="stylesheet" href="/css/styles.css" />
 </head>
@@ -10,7 +10,7 @@
   <header>
     <nav class="nav">
       <a href="/dashboard">Dashboard</a>
-      <a href="/browse">Browse</a>
+      <a href="/browse" class="active">Browse</a>
       <a href="/listing-new">New Listing</a>
       <a href="/my-listings">My Listings</a>
       <a href="/messages">Messages</a>
@@ -20,24 +20,18 @@
     </nav>
   </header>
 
-  <main class="browse-page">
-    <section class="browse-header">
-      <h1>Browse</h1>
-      <p>Search and filter listings within your campus community.</p>
-    </section>
+  <main class="container">
+    <h1 class="h1">Browse</h1>
+    <p class="kicker">Search and filter listings within your campus community.</p>
 
-    <section class="filters-card">
-      <div class="filters-grid">
-        <div class="filter-group filter-search">
+    <section class="card" style="margin-top: 14px;">
+      <div class="filters-row">
+        <div class="field">
           <label for="searchInput">Search</label>
-          <input
-            type="text"
-            id="searchInput"
-            placeholder="textbook, mini fridge, desk lamp..."
-          />
+          <input id="searchInput" type="text" placeholder="Search by keyword" />
         </div>
 
-        <div class="filter-group">
+        <div class="field">
           <label for="categoryFilter">Category</label>
           <select id="categoryFilter">
             <option value="All">All</option>
@@ -48,7 +42,7 @@
           </select>
         </div>
 
-        <div class="filter-group">
+        <div class="field">
           <label for="sortFilter">Sort</label>
           <select id="sortFilter">
             <option value="newest">Newest</option>
@@ -57,60 +51,87 @@
           </select>
         </div>
 
-        <div class="filter-group">
+        <div class="field">
           <label for="priceFilter">Max Price</label>
-          <input type="number" id="priceFilter" min="0" placeholder="50" />
+          <input id="priceFilter" type="number" min="0" step="0.01" placeholder="Any" />
         </div>
+      </div>
 
-        <div class="filter-actions">
-          <button id="applyFiltersBtn" type="button">Apply Filters</button>
-          <button id="clearFiltersBtn" type="button">Clear</button>
-        </div>
+      <div class="filters-actions">
+        <button class="btn" id="applyFiltersBtn">Apply Filters</button>
+        <button class="btn btn-secondary" id="clearFiltersBtn">Clear</button>
       </div>
     </section>
 
-    <section id="listingsSection">
-      <div id="listingsStatus" class="listings-status">Loading listings...</div>
-      <div id="listingsContainer" class="listings-grid"></div>
-    </section>
+    <div id="listingsStatus" class="empty-state" style="margin-top: 16px;">Loading listings...</div>
+    <section id="listingsContainer" class="listings-grid" style="margin-top: 16px;"></section>
   </main>
 
-  <div id="listingModal" class="listing-modal hidden">
-    <div class="listing-modal-backdrop" id="listingModalBackdrop"></div>
-  
-    <div class="listing-modal-content">
-      <button id="listingModalClose" class="listing-modal-close" type="button">&times;</button>
-  
-      <div class="listing-modal-grid">
-        <div class="listing-modal-image-wrap">
-          <img id="modalImage" class="listing-modal-image" src="" alt="Listing image" />
-        </div>
-  
-        <div class="listing-modal-info">
-          <div class="listing-modal-top-row">
-            <span id="modalCategory" class="listing-category">Listing</span>
-            <span id="modalTrade" class="listing-trade">For Sale</span>
-          </div>
-  
-          <h2 id="modalTitle" class="listing-modal-title">Title</h2>
-          <p id="modalPrice" class="listing-modal-price">$0.00</p>
-  
-          <div class="listing-modal-details">
-            <p><strong>Description:</strong> <span id="modalDescription"></span></p>
-            <p><strong>Condition:</strong> <span id="modalCondition"></span></p>
-            <p><strong>University:</strong> <span id="modalUniversity"></span></p>
-            <p><strong>Pickup:</strong> <span id="modalPickup"></span></p>
-            <p><strong>Seller:</strong> <span id="modalSeller"></span></p>
-          </div>
-  
-          <div class="listing-modal-actions">
-            <button class="btn message-btn" id="messageSellerBtn" type="button">
-              Message Seller
-            </button>
-            <button type="button" class="modal-action-btn">Offer Trade</button>
-          </div>
-        </div>
+  <div id="listingModal" class="modal hidden">
+    <div class="modal-backdrop" id="listingModalBackdrop"></div>
+
+    <div class="modal-panel listing-modal-panel">
+      <button type="button" class="modal-close" id="listingModalClose">&times;</button>
+
+      <img id="modalImage" class="listing-modal-image" src="/images/default.jpg" alt="Listing image" />
+
+      <div class="modal-topline">
+        <span id="modalCategory" class="pill">Listing</span>
+        <span id="modalTrade" class="pill">For Sale</span>
       </div>
+
+      <h2 id="modalTitle" class="modal-title">Title</h2>
+      <div id="modalPrice" class="modal-price">$0.00</div>
+
+      <div class="modal-section">
+        <strong>Description:</strong>
+        <p id="modalDescription">No description provided.</p>
+      </div>
+
+      <div class="modal-meta-grid">
+        <div><strong>Condition:</strong> <span id="modalCondition">Not listed</span></div>
+        <div><strong>University:</strong> <span id="modalUniversity">Not listed</span></div>
+        <div><strong>Pickup:</strong> <span id="modalPickup">Not listed</span></div>
+        <div><strong>Seller:</strong> <span id="modalSeller">Unknown seller</span></div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn" id="messageSellerBtn">Message Seller</button>
+        <button class="btn btn-secondary" id="offerTradeBtn">Offer Trade</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="tradeModal" class="modal hidden">
+    <div class="modal-backdrop" id="tradeModalBackdrop"></div>
+
+    <div class="modal-panel trade-modal-panel">
+      <button type="button" class="modal-close" id="tradeModalClose">&times;</button>
+
+      <p class="modal-kicker">Propose a Trade</p>
+      <h2 class="modal-title" id="tradeModalTitle">Offer one of your listings</h2>
+      <p class="modal-subtitle" id="tradeTargetSummary"></p>
+
+      <div id="tradeStatus" class="status-text">Loading your listings...</div>
+
+      <form id="tradeOfferForm">
+        <label for="tradeListingSelect">Choose one of your listings</label>
+        <select id="tradeListingSelect" required>
+          <option value="">Select a listing</option>
+        </select>
+
+        <label for="tradeMessageInput">Message (optional)</label>
+        <textarea
+          id="tradeMessageInput"
+          rows="4"
+          placeholder="Add a note about why you'd like to trade."
+        ></textarea>
+
+        <div class="trade-modal-actions">
+          <button type="button" class="btn btn-secondary" id="cancelTradeModalBtn">Cancel</button>
+          <button type="submit" class="btn" id="submitTradeOfferBtn">Send Trade Offer</button>
+        </div>
+      </form>
     </div>
   </div>
 

@@ -11,12 +11,21 @@ document.addEventListener("DOMContentLoaded", () => {
   const input = document.getElementById("messageInput");
   const sendBtn = document.getElementById("sendMessageBtn");
   const composeStatus = document.getElementById("composeStatus");
+  const logoutBtn = document.getElementById("logoutBtn");
 
   let conversations = [];
   let listingsById = {};
-  let selectedConversationId =
-    localStorage.getItem("activeConversationId") || null;
+  let selectedConversationId = localStorage.getItem("activeConversationId") || null;
   let sending = false;
+
+  if (logoutBtn) {
+    logoutBtn.addEventListener("click", () => {
+      localStorage.removeItem("jwtToken");
+      localStorage.removeItem("activeConversationId");
+      localStorage.removeItem("messageListingTitle");
+      window.location.href = "/";
+    });
+  }
 
   init();
 
@@ -28,9 +37,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     try {
       const [conversationRes, listingsRes] = await Promise.all([
-        fetch("/api/conversations", {
-          headers: { Authorization: token }
-        }),
+        fetch("/api/conversations", { headers: { Authorization: token } }),
         fetch("/api/listings")
       ]);
 
@@ -44,7 +51,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const listings = await listingsRes.json();
         listingsById = Object.fromEntries(
           (Array.isArray(listings) ? listings : []).map((listing) => [
-            String(listing.listing_id || listing.id),
+            String(listing.listing_id),
             listing
           ])
         );
@@ -53,15 +60,13 @@ document.addEventListener("DOMContentLoaded", () => {
       await hydrateConversationSummaries();
       renderInbox();
 
-      if (!conversations.length) {
+      if (conversations.length === 0) {
         renderNoConversationsState();
         return;
       }
 
       const selectedStillExists = conversations.some(
-        (conversation) =>
-          String(conversation.conversation_id) ===
-          String(selectedConversationId)
+        (conversation) => String(conversation.conversation_id) === String(selectedConversationId)
       );
 
       if (!selectedStillExists) {
@@ -72,7 +77,7 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch (error) {
       console.error("Messages init error:", error);
       inboxStatus.textContent = "Could not load conversations.";
-      conversationView.innerHTML = `<div class="messages-error">Could not load messages right now.</div>`;
+      conversationView.innerHTML = `<div class="empty-state">Could not load messages right now.</div>`;
       composeStatus.textContent = "Unable to load chat.";
     }
   }
@@ -82,13 +87,31 @@ document.addEventListener("DOMContentLoaded", () => {
       conversations.map(async (conversation) => {
         const conversationId = String(conversation.conversation_id);
         const otherEmail = getOtherParticipantEmail(conversation);
-        const messages = await fetchMessages(conversationId, false);
 
-        const lastMessage = messages.length ? messages[messages.length - 1] : null;
+        const [messages, tradeOffers] = await Promise.all([
+          fetchMessages(conversationId, false),
+          fetchTradeOffers(conversationId, false)
+        ]);
+
+        const combinedItems = [
+          ...messages.map((message) => ({
+            type: "message",
+            created_at: message.created_at,
+            text: message.message_text || "",
+            fromOtherUser: message.sender_email !== currentUserEmail
+          })),
+          ...tradeOffers.map((offer) => ({
+            type: "trade",
+            created_at: offer.created_at,
+            text: `Trade offer: ${getListingTitle(offer.offered_listing_id)} for ${getListingTitle(offer.requested_listing_id)}`,
+            fromOtherUser: offer.offered_by_email !== currentUserEmail
+          }))
+        ].sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+
+        const lastItem = combinedItems.length ? combinedItems[combinedItems.length - 1] : null;
+
         const unreadCount = messages.filter(
-          (message) =>
-            message.sender_email !== currentUserEmail &&
-            Number(message.is_read) === 0
+          (message) => message.sender_email !== currentUserEmail && Number(message.is_read) === 0
         ).length;
 
         const listing = listingsById[String(conversation.listing_id)] || null;
@@ -98,27 +121,17 @@ document.addEventListener("DOMContentLoaded", () => {
           conversation_id: conversationId,
           otherEmail,
           otherName: getDisplayNameFromEmail(otherEmail),
-          listingTitle:
-            listing?.title ||
-            localStorage.getItem("messageListingTitle") ||
-            localStorage.getItem("tradeListingTitle") ||
-            "Item",
-          listingDescription:
-            listing?.description || listing?.listing_description || "",
-          lastMessageText: lastMessage?.message_text || "",
-          lastMessageAt:
-            lastMessage?.created_at ||
-            conversation.updated_at ||
-            conversation.created_at,
+          listingTitle: listing?.title || localStorage.getItem("messageListingTitle") || "Item",
+          listingDescription: listing?.description || "",
+          lastMessageText: lastItem?.text || "",
+          lastMessageAt: lastItem?.created_at || conversation.updated_at,
           unreadCount
         };
       })
     );
 
     conversations = hydrated.sort(
-      (a, b) =>
-        new Date(b.lastMessageAt || b.updated_at || 0) -
-        new Date(a.lastMessageAt || a.updated_at || 0)
+      (a, b) => new Date(b.lastMessageAt || b.updated_at || 0) - new Date(a.lastMessageAt || a.updated_at || 0)
     );
   }
 
@@ -138,40 +151,22 @@ document.addEventListener("DOMContentLoaded", () => {
       button.type = "button";
       button.className = "conversation-item";
 
-      if (
-        String(conversation.conversation_id) === String(selectedConversationId)
-      ) {
+      if (String(conversation.conversation_id) === String(selectedConversationId)) {
         button.classList.add("active");
       }
 
       button.innerHTML = `
-        <div class="conversation-topline">
-          <div>
-            <div class="conversation-name">${escapeHtml(conversation.otherName)}</div>
-            <div class="conversation-email">${escapeHtml(conversation.otherEmail)}</div>
-          </div>
-          <div class="conversation-date">${formatDate(conversation.lastMessageAt)}</div>
+        <div class="conversation-item-top">
+          <strong>${escapeHtml(conversation.otherName)}</strong>
+          <span>${formatDate(conversation.lastMessageAt)}</span>
         </div>
-
-        <div class="conversation-preview">
-          ${
-            conversation.lastMessageText
-              ? escapeHtml(conversation.lastMessageText)
-              : "No messages yet."
-          }
+        <div class="conversation-item-sub">${escapeHtml(conversation.otherEmail)}</div>
+        <div class="conversation-item-preview">
+          ${conversation.lastMessageText ? escapeHtml(conversation.lastMessageText) : "No messages yet."}
         </div>
-
-        <div class="conversation-meta" style="margin-top:10px;">
-          <div class="conversation-email">${escapeHtml(
-            conversation.listingTitle || "Item"
-          )}</div>
-          <div>
-            ${
-              conversation.unreadCount > 0
-                ? `<span class="unread-badge" title="Unread"></span>`
-                : ""
-            }
-          </div>
+        <div class="conversation-item-bottom">
+          <span>${escapeHtml(conversation.listingTitle || "Item")}</span>
+          ${conversation.unreadCount > 0 ? `<span class="unread-badge">${conversation.unreadCount}</span>` : ""}
         </div>
       `;
 
@@ -186,6 +181,7 @@ document.addEventListener("DOMContentLoaded", () => {
   async function selectConversation(conversationId) {
     selectedConversationId = String(conversationId);
     localStorage.setItem("activeConversationId", selectedConversationId);
+
     renderInbox();
 
     const conversation = conversations.find(
@@ -199,29 +195,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
     conversationHeading.textContent = conversation.otherName;
     conversationMeta.innerHTML = `
-      <span>${escapeHtml(conversation.otherEmail)}</span>
-      <span class="listing-pill">About: ${escapeHtml(
-        conversation.listingTitle || "Item"
-      )}</span>
+      <div>${escapeHtml(conversation.otherEmail)}</div>
+      <div><strong>About:</strong> ${escapeHtml(conversation.listingTitle || "Item")}</div>
+      ${conversation.listingDescription ? `<div>${escapeHtml(conversation.listingDescription)}</div>` : ""}
     `;
-
-    if (conversation.listingDescription) {
-      conversationMeta.innerHTML += `
-        <span style="color: var(--muted);">${escapeHtml(
-          conversation.listingDescription
-        )}</span>
-      `;
-    }
 
     input.disabled = false;
     sendBtn.disabled = false;
     composeStatus.textContent = "Send a message in this conversation.";
 
-    await loadConversationContent(selectedConversationId);
+    await loadConversationMessages(selectedConversationId);
   }
 
-  async function loadConversationContent(conversationId) {
-    conversationView.innerHTML = `<div class="messages-empty">Loading conversation...</div>`;
+  async function loadConversationMessages(conversationId) {
+    conversationView.innerHTML = `<div class="empty-state">Loading conversation...</div>`;
 
     try {
       const [messages, tradeOffers] = await Promise.all([
@@ -229,12 +216,10 @@ document.addEventListener("DOMContentLoaded", () => {
         fetchTradeOffers(conversationId, false)
       ]);
 
-      renderConversationContent(messages, tradeOffers);
+      renderConversationFeed(messages, tradeOffers);
 
       const unreadIncoming = messages.filter(
-        (message) =>
-          message.sender_email !== currentUserEmail &&
-          Number(message.is_read) === 0
+        (message) => message.sender_email !== currentUserEmail && Number(message.is_read) === 0
       );
 
       await Promise.all(
@@ -250,199 +235,13 @@ document.addEventListener("DOMContentLoaded", () => {
         (item) => String(item.conversation_id) === String(conversationId)
       );
 
-      if (convo) {
-        convo.unreadCount = 0;
-      }
+      if (convo) convo.unreadCount = 0;
 
       renderInbox();
     } catch (error) {
       console.error("Error loading conversation:", error);
-      conversationView.innerHTML = `<div class="messages-error">Failed to load conversation.</div>`;
+      conversationView.innerHTML = `<div class="empty-state">Failed to load conversation.</div>`;
     }
-  }
-
-  function renderConversationContent(messages, tradeOffers) {
-    const hasMessages = Array.isArray(messages) && messages.length > 0;
-    const hasTrades = Array.isArray(tradeOffers) && tradeOffers.length > 0;
-
-    if (!hasMessages && !hasTrades) {
-      conversationView.innerHTML = `<div class="messages-empty">No messages or trade offers yet.</div>`;
-      return;
-    }
-
-    conversationView.innerHTML = "";
-
-    if (hasTrades) {
-      tradeOffers.forEach((trade) => {
-        conversationView.appendChild(createTradeOfferCard(trade));
-      });
-    }
-
-    if (hasMessages) {
-      messages.forEach((message) => {
-        const isSent = message.sender_email === currentUserEmail;
-
-        const row = document.createElement("div");
-        row.className = `message-row ${isSent ? "sent" : "received"}`;
-
-        row.innerHTML = `
-          <div class="message-bubble">
-            <div>${escapeHtml(message.message_text || "")}</div>
-            <div class="message-meta">
-              ${
-                isSent
-                  ? "You"
-                  : escapeHtml(getDisplayNameFromEmail(message.sender_email))
-              }
-              • ${formatDate(message.created_at, true)}
-            </div>
-          </div>
-        `;
-
-        conversationView.appendChild(row);
-      });
-    }
-
-    conversationView.scrollTop = conversationView.scrollHeight;
-  }
-
-  function createTradeOfferCard(trade) {
-    const row = document.createElement("div");
-    row.className = "message-row received";
-
-    const requestedListing =
-      listingsById[String(trade.requested_listing_id)] || null;
-    const offeredListing =
-      listingsById[String(trade.offered_listing_id)] || null;
-
-    const requestedTitle =
-      requestedListing?.title ||
-      `Listing #${trade.requested_listing_id || "N/A"}`;
-    const offeredTitle =
-      offeredListing?.title ||
-      `Listing #${trade.offered_listing_id || "N/A"}`;
-
-    const senderLabel =
-      trade.offered_by_email === currentUserEmail
-        ? "You"
-        : getDisplayNameFromEmail(trade.offered_by_email);
-
-    row.innerHTML = `
-      <div class="message-bubble" style="max-width:85%; border:1px solid var(--border); background:rgba(255,255,255,0.04);">
-        <div style="font-weight:700; margin-bottom:8px;">Trade Offer</div>
-        <div style="margin-bottom:6px;"><strong>Requested:</strong> ${escapeHtml(
-          requestedTitle
-        )}</div>
-        <div style="margin-bottom:6px;"><strong>Offered:</strong> ${escapeHtml(
-          offeredTitle
-        )}</div>
-        <div style="margin-bottom:6px;"><strong>Status:</strong> ${escapeHtml(
-          trade.status || "Pending"
-        )}</div>
-        <div style="margin-bottom:6px;"><strong>From:</strong> ${escapeHtml(
-          senderLabel
-        )}</div>
-        ${
-          trade.message_text
-            ? `<div style="margin-top:8px;">${escapeHtml(trade.message_text)}</div>`
-            : ""
-        }
-        <div class="message-meta" style="margin-top:10px;">
-          Trade offer • ${formatDate(trade.created_at, true)}
-        </div>
-      </div>
-    `;
-
-    return row;
-  }
-
-  function renderNoConversationsState() {
-    conversationHeading.textContent = "Conversation";
-    conversationMeta.innerHTML = "";
-    conversationView.innerHTML = `<div class="messages-empty">No conversations yet.</div>`;
-    input.disabled = true;
-    sendBtn.disabled = true;
-    composeStatus.textContent =
-      "Start a conversation from a listing by clicking Message Seller.";
-  }
-
-  function renderNoConversationSelectedState() {
-    conversationHeading.textContent = "Conversation";
-    conversationMeta.innerHTML = "";
-    conversationView.innerHTML = `<div class="messages-empty">No conversation selected.</div>`;
-    input.disabled = true;
-    sendBtn.disabled = true;
-    composeStatus.textContent = "Choose a conversation to start chatting.";
-  }
-
-  form.addEventListener("submit", async (event) => {
-    event.preventDefault();
-
-    if (!selectedConversationId || sending) return;
-
-    const messageText = input.value.trim();
-    if (!messageText) return;
-
-    sending = true;
-    sendBtn.disabled = true;
-    composeStatus.textContent = "Sending...";
-
-    try {
-      const response = await fetch(
-        `/api/conversations/${selectedConversationId}/messages`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: token
-          },
-          body: JSON.stringify({ messageText })
-        }
-      );
-
-      const data = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to send message.");
-      }
-
-      input.value = "";
-      composeStatus.textContent = "Message sent.";
-
-      await refreshAfterSend(selectedConversationId);
-    } catch (error) {
-      console.error("Send message error:", error);
-      composeStatus.textContent = error.message || "Could not send message.";
-    } finally {
-      sending = false;
-      sendBtn.disabled = false;
-    }
-  });
-
-  async function refreshAfterSend(conversationId) {
-    const [messages, tradeOffers] = await Promise.all([
-      fetchMessages(conversationId, true),
-      fetchTradeOffers(conversationId, false)
-    ]);
-
-    renderConversationContent(messages, tradeOffers);
-
-    const convo = conversations.find(
-      (item) => String(item.conversation_id) === String(conversationId)
-    );
-
-    if (convo) {
-      const last = messages[messages.length - 1];
-      convo.lastMessageText = last?.message_text || convo.lastMessageText;
-      convo.lastMessageAt = last?.created_at || new Date().toISOString();
-      convo.unreadCount = 0;
-    }
-
-    conversations.sort(
-      (a, b) => new Date(b.lastMessageAt || 0) - new Date(a.lastMessageAt || 0)
-    );
-
-    renderInbox();
   }
 
   async function fetchMessages(conversationId, throwOnError = true) {
@@ -452,7 +251,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (!response.ok) {
       if (throwOnError) {
-        throw new Error(`Request failed with status ${response.status}`);
+        throw new Error(`Messages request failed with status ${response.status}`);
       }
       return [];
     }
@@ -461,92 +260,290 @@ document.addEventListener("DOMContentLoaded", () => {
     return Array.isArray(data) ? data : [];
   }
 
-  async function fetchTradeOffers(conversationId, throwOnError = false) {
-    try {
-      const response = await fetch(
-        `/api/conversations/${conversationId}/trade-offers`,
-        {
-          headers: { Authorization: token }
-        }
-      );
+  async function fetchTradeOffers(conversationId, throwOnError = true) {
+    const response = await fetch(`/api/conversations/${conversationId}/trade-offers`, {
+      headers: { Authorization: token }
+    });
 
-      if (!response.ok) {
-        if (throwOnError) {
-          throw new Error(
-            `Trade offers request failed with status ${response.status}`
-          );
-        }
-        return [];
-      }
-
-      const data = await response.json();
-      return Array.isArray(data) ? data : [];
-    } catch (error) {
+    if (!response.ok) {
       if (throwOnError) {
-        throw error;
+        throw new Error(`Trade request failed with status ${response.status}`);
       }
       return [];
     }
+
+    const data = await response.json();
+    return Array.isArray(data) ? data : [];
+  }
+
+  function renderConversationFeed(messages, tradeOffers) {
+    const messageItems = (messages || []).map((message) => ({
+      type: "message",
+      created_at: message.created_at,
+      data: message
+    }));
+
+    const tradeItems = (tradeOffers || []).map((offer) => ({
+      type: "trade",
+      created_at: offer.created_at,
+      data: offer
+    }));
+
+    const items = [...messageItems, ...tradeItems].sort(
+      (a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0)
+    );
+
+    if (!items.length) {
+      conversationView.innerHTML = `<div class="empty-state">No messages or trade offers yet.</div>`;
+      return;
+    }
+
+    conversationView.innerHTML = "";
+
+    items.forEach((item) => {
+      if (item.type === "message") {
+        renderMessageRow(item.data);
+      } else {
+        renderTradeCard(item.data);
+      }
+    });
+
+    conversationView.scrollTop = conversationView.scrollHeight;
+  }
+
+  function renderMessageRow(message) {
+    const isSent = message.sender_email === currentUserEmail;
+    const row = document.createElement("div");
+    row.className = `message-row ${isSent ? "sent" : "received"}`;
+
+    row.innerHTML = `
+      <div class="message-bubble">
+        <div class="message-text">${escapeHtml(message.message_text || "")}</div>
+        <div class="message-meta">
+          ${isSent ? "You" : escapeHtml(getDisplayNameFromEmail(message.sender_email))}
+          • ${formatDate(message.created_at, true)}
+        </div>
+      </div>
+    `;
+
+    conversationView.appendChild(row);
+  }
+
+  function renderTradeCard(offer) {
+    const requested = listingsById[String(offer.requested_listing_id)];
+    const offered = listingsById[String(offer.offered_listing_id)];
+    const isOfferSender = offer.offered_by_email === currentUserEmail;
+    const requestedOwner = requested?.user_email || requested?.seller_email || requested?.email;
+    const isRequestedOwner = requestedOwner === currentUserEmail;
+
+    const card = document.createElement("div");
+    card.className = "trade-card";
+
+    let actionsHtml = "";
+
+    if ((offer.status || "Pending") === "Pending" && isRequestedOwner) {
+      actionsHtml = `
+        <button class="btn trade-action-btn" data-action="accept" data-id="${offer.trade_offer_id}">
+          Accept
+        </button>
+        <button class="btn btn-danger trade-action-btn" data-action="decline" data-id="${offer.trade_offer_id}">
+          Decline
+        </button>
+      `;
+    } else if ((offer.status || "Pending") === "Pending" && isOfferSender) {
+      actionsHtml = `
+        <button class="btn btn-secondary trade-action-btn" data-action="cancel" data-id="${offer.trade_offer_id}">
+          Cancel
+        </button>
+      `;
+    }
+
+    card.innerHTML = `
+      <div class="trade-card-header">
+        <span class="trade-badge">Trade Offer</span>
+        <span class="trade-status trade-status-${String(offer.status || "Pending").toLowerCase()}">
+          ${escapeHtml(offer.status || "Pending")}
+        </span>
+      </div>
+
+      <div class="trade-card-body">
+        <div><strong>Requested item:</strong> ${escapeHtml(requested?.title || `Listing #${offer.requested_listing_id}`)}</div>
+        <div><strong>Offered item:</strong> ${escapeHtml(offered?.title || `Listing #${offer.offered_listing_id}`)}</div>
+        ${
+          offer.message_text
+            ? `<div class="trade-message"><strong>Message:</strong> ${escapeHtml(offer.message_text)}</div>`
+            : ""
+        }
+        <div class="trade-meta">
+          ${escapeHtml(getDisplayNameFromEmail(offer.offered_by_email || ""))} • ${formatDate(offer.created_at, true)}
+        </div>
+      </div>
+
+      ${actionsHtml ? `<div class="trade-card-actions">${actionsHtml}</div>` : ""}
+    `;
+
+    card.querySelectorAll(".trade-action-btn").forEach((btn) => {
+      btn.addEventListener("click", () => handleTradeAction(btn.dataset.id, btn.dataset.action));
+    });
+
+    conversationView.appendChild(card);
+  }
+
+  async function handleTradeAction(tradeOfferId, action) {
+    try {
+      let url = "";
+      let options = {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: token
+        }
+      };
+
+      if (action === "accept") {
+        url = `/api/trade-offers/${tradeOfferId}/respond`;
+        options.body = JSON.stringify({ status: "Accepted" });
+      } else if (action === "decline") {
+        url = `/api/trade-offers/${tradeOfferId}/respond`;
+        options.body = JSON.stringify({ status: "Declined" });
+      } else if (action === "cancel") {
+        url = `/api/trade-offers/${tradeOfferId}/cancel`;
+      }
+
+      const response = await fetch(url, options);
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(data.message || "Trade action failed.");
+      }
+
+      await hydrateConversationSummaries();
+      renderInbox();
+      await loadConversationMessages(selectedConversationId);
+    } catch (error) {
+      console.error("Trade action error:", error);
+      alert(error.message || "Could not update trade offer.");
+    }
+  }
+
+  form?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    if (sending || !selectedConversationId) return;
+
+    const text = input.value.trim();
+    if (!text) return;
+
+    sending = true;
+    sendBtn.disabled = true;
+    composeStatus.textContent = "Sending...";
+
+    try {
+      const response = await fetch(`/api/conversations/${selectedConversationId}/messages`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: token
+        },
+        body: JSON.stringify({ message_text: text })
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(data.message || "Could not send message.");
+      }
+
+      input.value = "";
+      composeStatus.textContent = "Message sent.";
+
+      await hydrateConversationSummaries();
+      renderInbox();
+      await loadConversationMessages(selectedConversationId);
+    } catch (error) {
+      console.error("Send message error:", error);
+      composeStatus.textContent = error.message || "Could not send message.";
+    } finally {
+      sending = false;
+      sendBtn.disabled = false;
+    }
+  });
+
+  function renderNoConversationsState() {
+    conversationHeading.textContent = "Conversation";
+    conversationMeta.innerHTML = "";
+    conversationView.innerHTML = `<div class="empty-state">No conversations yet.</div>`;
+    input.disabled = true;
+    sendBtn.disabled = true;
+    composeStatus.textContent = "Start a conversation from a listing by clicking Message Seller.";
+  }
+
+  function renderNoConversationSelectedState() {
+    conversationHeading.textContent = "Conversation";
+    conversationMeta.innerHTML = "";
+    conversationView.innerHTML = `<div class="empty-state">No conversation selected.</div>`;
+    input.disabled = true;
+    sendBtn.disabled = true;
+    composeStatus.textContent = "Choose a conversation to start chatting.";
   }
 
   function getOtherParticipantEmail(conversation) {
-    if (!currentUserEmail) {
-      return (
-        conversation.user_one_email ||
-        conversation.user_two_email ||
-        "Unknown user"
-      );
+    const candidates = [
+      conversation.other_user_email,
+      conversation.user_one_email,
+      conversation.user_two_email,
+      conversation.buyer_email,
+      conversation.seller_email
+    ].filter(Boolean);
+
+    for (const email of candidates) {
+      if (String(email).toLowerCase() !== String(currentUserEmail || "").toLowerCase()) {
+        return email;
+      }
     }
 
-    return conversation.user_one_email === currentUserEmail
-      ? conversation.user_two_email
-      : conversation.user_one_email;
+    return candidates[0] || "Unknown";
   }
 
   function getDisplayNameFromEmail(email) {
-    if (!email) return "Unknown user";
-
-    const localPart = email.split("@")[0] || "";
-    return localPart
-      .split(/[._-]+/)
+    if (!email) return "User";
+    const username = String(email).split("@")[0] || "User";
+    return username
+      .split(/[._-]/)
       .filter(Boolean)
       .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
       .join(" ");
   }
 
-  function formatDate(value, includeTime = false) {
-    if (!value) return "";
-
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return "";
-
-    return includeTime
-      ? date.toLocaleString([], {
-          month: "short",
-          day: "numeric",
-          hour: "numeric",
-          minute: "2-digit"
-        })
-      : date.toLocaleDateString([], {
-          month: "short",
-          day: "numeric"
-        });
-  }
-
-  function escapeHtml(value) {
-    const div = document.createElement("div");
-    div.textContent = value ?? "";
-    return div.innerHTML;
+  function getListingTitle(listingId) {
+    return listingsById[String(listingId)]?.title || `Listing #${listingId}`;
   }
 
   function parseJwtEmail(jwtToken) {
     if (!jwtToken) return "";
-
     try {
       const payload = JSON.parse(atob(jwtToken.split(".")[1]));
-      return payload.email || "";
+      return payload.email || payload.user_email || "";
     } catch (error) {
       return "";
     }
+  }
+
+  function escapeHtml(value) {
+    const div = document.createElement("div");
+    div.textContent = value || "";
+    return div.innerHTML;
+  }
+
+  function formatDate(value, includeTime = false) {
+    if (!value) return "";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "";
+
+    return date.toLocaleString([], {
+      month: "short",
+      day: "numeric",
+      ...(includeTime ? { hour: "numeric", minute: "2-digit" } : {})
+    });
   }
 });
