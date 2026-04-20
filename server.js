@@ -136,7 +136,7 @@ app.post('/api/conversations', authenticateToken, async (req, res) => {
 
 app.get('/api/conversations', authenticateToken, async (req, res) => {
     try {
-        const connection = await createConnection();ç
+        const connection = await createConnection();
         const [rows] = await connection.execute(
             `SELECT * FROM conversations 
              WHERE user_one_email = ? OR user_two_email = ?

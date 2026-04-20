@@ -7,6 +7,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setupEventListeners();
   setupModalEvents();
   setupMessageSeller();
+  setupOfferTrade();
   loadListings();
 });
 
@@ -36,6 +37,9 @@ function setupEventListeners() {
     logoutBtn.addEventListener("click", () => {
       localStorage.removeItem("jwtToken");
       localStorage.removeItem("activeConversationId");
+      localStorage.removeItem("messageListingTitle");
+      localStorage.removeItem("tradeListingId");
+      localStorage.removeItem("tradeListingTitle");
       window.location.href = "/";
     });
   }
@@ -87,7 +91,8 @@ function applyFilters() {
   if (searchValue) {
     filtered = filtered.filter((listing) => {
       const title = (listing.title || "").toLowerCase();
-      const description = (listing.description || "").toLowerCase();
+      const description =
+        (listing.description || listing.listing_description || "").toLowerCase();
       const category = (listing.category || "").toLowerCase();
       const university = (listing.university || "").toLowerCase();
 
@@ -157,17 +162,20 @@ function renderListings(listings) {
   listings.forEach((listing) => {
     const card = document.createElement("article");
     card.className = "listing-card";
-    card.dataset.id = listing.listing_id;
+    card.dataset.id = listing.listing_id || listing.id || "";
 
     const imageSrc = getListingImage(listing.photos);
     const price = formatPrice(listing.price);
     const category = listing.category || "Listing";
     const title = listing.title || "Untitled Listing";
-    const description = listing.description || "No description provided.";
+    const description =
+      listing.description ||
+      listing.listing_description ||
+      "No description provided.";
     const sellerName = listing.seller_name || "Unknown seller";
     const sellerUniversity =
       listing.seller_university || listing.university || "";
-    const tradeOption = listing.trade_option || "Sell";
+    const tradeOption = listing.trade_option || "For Sale";
 
     card.innerHTML = `
       <div class="listing-image-wrap">
@@ -273,6 +281,7 @@ function openListingModal(listing) {
   const university = document.getElementById("modalUniversity");
   const pickup = document.getElementById("modalPickup");
   const seller = document.getElementById("modalSeller");
+  const offerTradeBtn = document.querySelector(".modal-action-btn");
 
   const imageSrc = getListingImage(listing.photos);
 
@@ -286,12 +295,22 @@ function openListingModal(listing) {
   trade.textContent = listing.trade_option || "For Sale";
   title.textContent = listing.title || "Untitled Listing";
   price.textContent = formatPrice(listing.price);
-  description.textContent = listing.description || "No description provided.";
+  description.textContent =
+    listing.description || listing.listing_description || "No description provided.";
   condition.textContent = listing.item_condition || "Not listed";
   university.textContent =
     listing.seller_university || listing.university || "Not listed";
   pickup.textContent = listing.pickup_details || "Not listed";
   seller.textContent = listing.seller_name || "Unknown seller";
+
+  if (offerTradeBtn) {
+    const tradeOptionValue = (listing.trade_option || "").toLowerCase();
+    const allowsTrade =
+      tradeOptionValue.includes("trade") || tradeOptionValue === "open to trade";
+
+    offerTradeBtn.style.display = allowsTrade ? "inline-block" : "none";
+    offerTradeBtn.disabled = !allowsTrade;
+  }
 
   modal.classList.remove("hidden");
   document.body.classList.add("modal-open");
@@ -353,7 +372,7 @@ function setupMessageSeller() {
         },
         body: JSON.stringify({
           recipientEmail,
-          listingId: activeListing.listing_id
+          listingId: activeListing.listing_id || activeListing.id
         })
       });
 
@@ -379,6 +398,71 @@ function setupMessageSeller() {
     } catch (error) {
       console.error("Message Seller error:", error);
       alert(error.message || "Could not start conversation.");
+    }
+  });
+}
+
+function setupOfferTrade() {
+  const offerTradeBtn = document.querySelector(".modal-action-btn");
+  if (!offerTradeBtn) return;
+
+  offerTradeBtn.addEventListener("click", async () => {
+    if (!activeListing) {
+      alert("No listing selected.");
+      return;
+    }
+
+    const token = localStorage.getItem("jwtToken");
+    if (!token) {
+      window.location.href = "/";
+      return;
+    }
+
+    try {
+      const recipientEmail =
+        activeListing.user_email ||
+        activeListing.seller_email ||
+        activeListing.email;
+
+      if (!recipientEmail) {
+        throw new Error("Seller email not found for this listing.");
+      }
+
+      const response = await fetch("/api/conversations", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": token
+        },
+        body: JSON.stringify({
+          recipientEmail,
+          listingId: activeListing.listing_id || activeListing.id
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to start trade conversation.");
+      }
+
+      const conversationId =
+        data.conversation_id ||
+        data.conversationId ||
+        data.id;
+
+      if (!conversationId) {
+        throw new Error("Conversation created, but no conversation ID returned.");
+      }
+
+      localStorage.setItem("activeConversationId", conversationId);
+      localStorage.setItem("tradeListingId", activeListing.listing_id || activeListing.id);
+      localStorage.setItem("tradeListingTitle", activeListing.title || "");
+
+      window.location.href = "/messages";
+    } catch (error) {
+      console.error("Offer Trade error:", error);
+      alert(error.message || "Could not start trade flow.");
     }
   });
 }
