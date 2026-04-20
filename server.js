@@ -396,6 +396,8 @@ app.post('/api/listings', authenticateToken, async (req, res) => {
     try {
         const connection = await createConnection();
 
+        const safeUniversity = university || 'Arizona State University';
+
         const [result] = await connection.execute(
             `INSERT INTO listings
             (listing_id, user_email, title, price, trade_option, item_condition, pickup_details, listing_description, photos, created_at, updated_at, university, category, status)
@@ -407,10 +409,10 @@ app.post('/api/listings', authenticateToken, async (req, res) => {
                 trade_option || 'None',
                 item_condition || 'Good',
                 pickup_details || 'MU',
-                description,
+                description || '',
                 photos || '',
-                university,
-                category,
+                safeUniversity,
+                category || 'Other',
                 'Active'
             ]
         );
@@ -422,7 +424,9 @@ app.post('/api/listings', authenticateToken, async (req, res) => {
         });
     } catch (error) {
         console.error("Database Error:", error);
-        res.status(500).json({ message: 'Internal server error.' });
+        res.status(500).json({
+            message: error.message || 'Internal server error.'
+        });
     }
 });
 
